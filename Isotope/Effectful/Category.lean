@@ -4,7 +4,6 @@ import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.CategoryTheory.Functor.Basic
 import Mathlib.CategoryTheory.Functor.Functorial
 import Mathlib.CategoryTheory.Monoidal.Category
-import Mathlib.Order.Monotone.Basic
 
 import Isotope.Binoidal.Category
 import Isotope.Premonoidal.Category

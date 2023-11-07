@@ -2,7 +2,6 @@ import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.CategoryTheory.Functor.Basic
 import Mathlib.CategoryTheory.Monoidal.Category
 import Mathlib.CategoryTheory.Monoidal.Braided
-import Mathlib.Order.Monotone.Basic
 
 import Isotope.Binoidal.Category
 import Isotope.Premonoidal.Category
