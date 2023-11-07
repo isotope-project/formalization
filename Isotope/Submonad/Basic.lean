@@ -1,4 +1,4 @@
-import Mathlib.Init.Set
+import Mathlib.Data.Set.Image
 import Mathlib.Data.Subtype
 import Std.Classes.LawfulMonad
 
@@ -10,6 +10,27 @@ structure Submonad (m) [Monad m] where
     (f: α -> m β) ->
     (∀a: α, contains (f a)) ->
     (contains (a >>= f))
+
+def Submonad.values (m) [mm: Monad m] [LawfulMonad m]: Submonad m where
+  contains := Set.range mm.pure
+  contains_pure a := ⟨a, rfl⟩
+  contains_bind a := λ⟨x, Hx⟩ f Hf =>
+    let ⟨y, Hy⟩ := Hf x;
+    ⟨y, by simp [<-Hx, Hy]⟩
+
+def Submonad.univ (m) [Monad m]: Submonad m where
+  contains := Set.univ
+  contains_pure _ := True.intro
+  contains_bind _ _ _ _ := True.intro
+
+def Submonad.intersect {m} [Monad m]
+  (S S': Submonad m): Submonad m where
+  contains a := S.contains a ∧ S'.contains a
+  contains_pure a := ⟨S.contains_pure a, S'.contains_pure a⟩
+  contains_bind a Ha f Hf := ⟨
+    S.contains_bind a Ha.1 f (λa => (Hf a).1),
+    S'.contains_bind a Ha.2 f (λa => (Hf a).2)
+  ⟩
 
 theorem Submonad.ext {m} [Monad m]
   {S S': Submonad m}
