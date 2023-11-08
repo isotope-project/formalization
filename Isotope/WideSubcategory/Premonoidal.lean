@@ -156,8 +156,7 @@ instance SymmetricMonoidalSubcategory.instPartialOrder {C}
 def BinoidalCategory.Central.whiskerLeft {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
-  (Z: C) (Hf: Central f): Central (Z ◁ f)
-  where
+  (Z: C) (Hf: Central f): Central (Z ◁ f) where
   commute g := {
     left := calc
       _ = ((Z ◁ f) ▷ _
@@ -201,8 +200,7 @@ def BinoidalCategory.Central.whiskerLeft {C}
         := by simp [
           associator_inv_left_naturality,
           <-associator_right_naturality,
-          leftTensorHom,
-          whiskerLeft_comp
+          leftTensorHom
         ]
       _ = (associator _ _ _).inv
         ≫ ((g ▷ Z) ⋊ f)
@@ -215,7 +213,6 @@ def BinoidalCategory.Central.whiskerLeft {C}
         := by simp [
           associator_inv_right_naturality,
           <-associator_left_naturality,
-          whiskerLeft_comp,
           rightTensorHom
         ]
       _ = _ := by simp [rightTensorHom]
@@ -225,8 +222,38 @@ def BinoidalCategory.Central.whiskerLeft {C}
 def BinoidalCategory.Central.whiskerRight {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
-  (Hf: Central f) (Z: C): Central (f ▷ Z)
-  := sorry
+  (Hf: Central f) (Z: C): Central (f ▷ Z) where
+  commute g := {
+    left := calc
+      _ = ((f ▷ _) ▷ _
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ _ ◁ g) := by simp [leftTensorHom]
+      _ = (associator _ _ _).hom
+        ≫ f ⋉ (_ ◁ g)
+        ≫ (associator _ _ _).inv
+        := by simp [
+          associator_left_naturality,
+          <-associator_inv_right_naturality,
+          leftTensorHom
+        ]
+      _ = (associator _ _ _).hom
+        ≫ f ⋊ (_ ◁ g)
+        ≫ (associator _ _ _).inv
+        := by rw [(Hf.commute _).left]
+      _ = (_ ◁ g
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ (f ▷ _) ▷ _)
+        := by simp [
+          associator_right_naturality,
+          <-associator_inv_left_naturality,
+          rightTensorHom
+        ]
+      _ = _ := by simp [rightTensorHom]
+    right := calc
+      _ = _ := sorry
+  }
 
 theorem SymmetricMonoidalSubcategory.le_ext {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
