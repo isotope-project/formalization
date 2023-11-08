@@ -32,7 +32,6 @@ def BinoidalCategory.leftTensorHom {C: Type u} [Category C] [TensorProduct C] [B
   {X₁ Y₁ X₂ Y₂ : C} (f : X₁ ⟶ Y₁) (g: X₂ ⟶ Y₂)
   : (tensorObj X₁ X₂ ⟶ tensorObj Y₁ Y₂) := whiskerRight f _ ≫ whiskerLeft _ g
 
-
   /-- right tensor product `f ⋉ g` -/
 def BinoidalCategory.rightTensorHom {C: Type u} [Category C] [TensorProduct C] [BinoidalCategory C]
   {X₁ Y₁ X₂ Y₂ : C} (f : X₁ ⟶ Y₁) (g: X₂ ⟶ Y₂)

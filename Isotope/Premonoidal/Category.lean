@@ -99,6 +99,65 @@ class PremonoidalCategory (C: Type u) [Category C] [TensorMonoid C] extends Bino
         whiskerRight (rightUnitor X).hom Y := by
     aesop_cat
 
+theorem PremonoidalCategory.associator_inv_left_naturality {C: Type u}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  {X₁ X₂ X₃ Y : C} (f : X₁ ⟶ Y)
+  : whiskerRight f (tensorObj X₂ X₃) ≫ (associator Y X₂ X₃).inv
+  = (associator X₁ X₂ X₃).inv ≫ whiskerRight (whiskerRight f X₂) X₃
+  := calc
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ ((associator X₁ X₂ X₃).hom
+      ≫ whiskerRight f (tensorObj X₂ X₃))
+      ≫ (associator Y X₂ X₃).inv
+      := by simp
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ (whiskerRight (whiskerRight f X₂) X₃
+      ≫ (associator Y X₂ X₃).hom)
+      ≫ (associator Y X₂ X₃).inv
+      := by rw [associator_left_naturality]
+    _ = _ := by simp
+
+theorem PremonoidalCategory.associator_inv_mid_naturality {C: Type u}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  {X₁ X₂ X₃ Y : C} (f : X₂ ⟶ Y)
+  : whiskerLeft X₁ (whiskerRight f X₃) ≫ (associator X₁ Y X₃).inv
+  = (associator X₁ X₂ X₃).inv ≫ whiskerRight (whiskerLeft X₁ f) X₃
+  := calc
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ ((associator X₁ X₂ X₃).hom
+      ≫ whiskerLeft X₁ (whiskerRight f X₃))
+      ≫ (associator X₁ Y X₃).inv
+      := by simp
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ (whiskerRight (whiskerLeft X₁ f) X₃
+      ≫ (associator X₁ Y X₃).hom)
+      ≫ (associator X₁ Y X₃).inv
+      := by rw [associator_mid_naturality]
+    _ = _ := by simp
+
+theorem PremonoidalCategory.associator_inv_right_naturality {C: Type u}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  {X₁ X₂ X₃ Y : C} (f : X₃ ⟶ Y)
+  : whiskerLeft X₁ (whiskerLeft X₂ f) ≫ (associator X₁ X₂ Y).inv
+  = (associator X₁ X₂ X₃).inv ≫ whiskerLeft (tensorObj X₁ X₂) f
+  := calc
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ ((associator X₁ X₂ X₃).hom
+      ≫ whiskerLeft X₁ (whiskerLeft X₂ f))
+      ≫ (associator X₁ X₂ Y).inv
+      := by simp
+    _ = (associator X₁ X₂ X₃).inv
+      ≫ (whiskerLeft (tensorObj X₁ X₂) f
+      ≫ (associator X₁ X₂ Y).hom)
+      ≫ (associator X₁ X₂ Y).inv
+      := by rw [associator_right_naturality]
+    _ = _ := by simp
+
+-- theorem PremonoidalCategory.whiskerLeft_leftTensorHom {C: Type u}
+--   [Category C] [TensorMonoid C] [PremonoidalCategory C]
+--   {X Y X' Y': C} (Z: C) (f: X ⟶ Y) (g: X' ⟶ Y')
+--   : Z ◁ (f ⋉ g)
+
 instance TensorMonoid.fromMonoidalCategory (C: Type u) [Category C] [MonoidalCategory C]: TensorMonoid C := {
   tensorUnit := MonoidalCategory.tensorUnit
 }

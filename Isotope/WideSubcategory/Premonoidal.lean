@@ -155,15 +155,47 @@ instance SymmetricMonoidalSubcategory.instPartialOrder {C}
 --TODO: Trivial, by isotopy
 def BinoidalCategory.Central.whiskerLeft {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
-  [SymmetricPremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
   (Z: C) (Hf: Central f): Central (Z ◁ f)
-  := sorry
+  where
+  commute g := {
+    left :=
+      calc
+        _ = ((Z ◁ f) ▷ _
+          ≫ (associator _ _ _).hom)
+          ≫ ((associator _ _ _).inv
+          ≫ _ ◁ g)
+          := by simp [leftTensorHom]
+        _ = (associator _ _ _).hom
+          ≫ Z ◁ (f ⋉ g)
+          ≫ (associator _ _ _).inv
+          := by simp [
+            associator_mid_naturality,
+            <-associator_inv_right_naturality,
+            whiskerLeft_comp,
+            leftTensorHom
+          ] --factor out as lemma?
+        _ = (associator _ _ _).hom
+          ≫ Z ◁ (f ⋊ g)
+          ≫ (associator _ _ _).inv
+          := by rw [(Hf.commute g).left]
+        _ = (_ ◁ g
+          ≫ (associator _ _ _).hom)
+          ≫ ((associator _ _ _).inv
+          ≫ (Z ◁ f) ▷ _)
+          := by simp [
+            associator_right_naturality,
+            <-associator_inv_mid_naturality,
+            whiskerLeft_comp,
+            rightTensorHom
+          ]
+        _ = (Z ◁ f) ⋊ g := by simp [rightTensorHom]
+    right := sorry
+  }
 
 --TODO: Trivial, by isotopy
 def BinoidalCategory.Central.whiskerRight {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
-  [SymmetricPremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
   (Hf: Central f) (Z: C): Central (f ▷ Z)
   := sorry
