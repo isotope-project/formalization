@@ -13,6 +13,7 @@ class BraidedPremonoidalCategory (C: Type u)
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
 where
   braiding : ∀ X Y : C, X ⊗ Y ≅ Y ⊗ X
+  braiding_centrality: ∀ X Y : C, CentralIso (braiding X Y)
   braiding_left_naturality : ∀ {X Y: C} (f: X ⟶ Y) (Z),
     (braiding X Z).hom ≫ whiskerLeft Z f = whiskerRight f Z ≫ (braiding Y Z).hom
   braiding_right_naturality : ∀ {X Y: C} (f: X ⟶ Y) (Z),
@@ -34,6 +35,7 @@ instance fromBraidedCategory {C: Type u} [Category C] [MonoidalCategory C] [Brai
 : BraidedPremonoidalCategory C
 where
   braiding := BraidedCategory.braiding
+  braiding_centrality := λ_ _ => monoidalCentralIso _
   braiding_left_naturality := by
     simp [
       BinoidalCategory.whiskerLeft, BinoidalCategory.whiskerRight,

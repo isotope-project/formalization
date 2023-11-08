@@ -46,40 +46,21 @@ inductive SymmetricPremonoidalCategory.skeleton (C)
   | rightUnitor_inv (X): skeleton C _ _ (M.rightUnitor X).inv
   | braiding (X Y): skeleton C _ _ (B.braiding X Y).hom
 
-instance SymmetricPremonoidalCategory.instBot {C}
-  [Category C] [TensorMonoid C] [PremonoidalCategory C]
-  [SymmetricPremonoidalCategory C]
-  : Bot (SymmetricPremonoidalSubcategory C) where
-  bot := {
-    contains := SymmetricPremonoidalCategory.skeleton C
-    contains_comp := SymmetricPremonoidalCategory.skeleton.comp
-    contains_id := SymmetricPremonoidalCategory.skeleton.id
-    whiskerLeft := SymmetricPremonoidalCategory.skeleton.whiskerLeft
-    whiskerRight := SymmetricPremonoidalCategory.skeleton.whiskerRight
-    associator := SymmetricPremonoidalCategory.skeleton.associator
-    associator_inv := SymmetricPremonoidalCategory.skeleton.associator_inv
-    leftUnitor := SymmetricPremonoidalCategory.skeleton.leftUnitor
-    leftUnitor_inv := SymmetricPremonoidalCategory.skeleton.leftUnitor_inv
-    rightUnitor := SymmetricPremonoidalCategory.skeleton.rightUnitor
-    rightUnitor_inv := SymmetricPremonoidalCategory.skeleton.rightUnitor_inv
-    braiding := SymmetricPremonoidalCategory.skeleton.braiding
-  }
-
-theorem SymmetricPremonoidalCategory.ext_binoidal {C}
+theorem SymmetricPremonoidalSubcategory.ext_binoidal {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
   {L R: SymmetricPremonoidalSubcategory C}
   (H: L.toBinoidalSubcategory = R.toBinoidalSubcategory): L = R
   := by cases L; cases R; cases H; rfl
 
-theorem SymmetricPremonoidalCategory.ext {C}
+theorem SymmetricPremonoidalSubcategory.ext {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
   {L R: SymmetricPremonoidalSubcategory C}
   (H: L.contains = R.contains): L = R
   := ext_binoidal (BinoidalSubcategory.ext H)
 
-instance SymmetricPremonoidalCategory.instPartialOrder {C}
+instance SymmetricPremonoidalSubcategory.instPartialOrder {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
   : PartialOrder (SymmetricPremonoidalSubcategory C) where
@@ -87,6 +68,13 @@ instance SymmetricPremonoidalCategory.instPartialOrder {C}
   le_refl _ _ _ := le_refl _
   le_trans _ _ _ HL HR X Y := le_trans (HL X Y) (HR X Y)
   le_antisymm _ _ HL HR := ext (le_antisymm HL HR)
+
+theorem SymmetricPremonoidalSubcategory.le_ext {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: SymmetricPremonoidalSubcategory C}
+  (H: L.contains ≤ R.contains): L ≤ R
+  := H
 
 theorem SymmetricPremonoidalCategory.skeleton.inclusion
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
@@ -107,6 +95,25 @@ theorem SymmetricPremonoidalCategory.skeleton.inclusion
   | rightUnitor_inv => apply W.rightUnitor_inv
   | braiding => apply W.braiding
 
+instance SymmetricPremonoidalCategory.instBot {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : Bot (SymmetricPremonoidalSubcategory C) where
+  bot := {
+    contains := SymmetricPremonoidalCategory.skeleton C
+    contains_comp := SymmetricPremonoidalCategory.skeleton.comp
+    contains_id := SymmetricPremonoidalCategory.skeleton.id
+    whiskerLeft := SymmetricPremonoidalCategory.skeleton.whiskerLeft
+    whiskerRight := SymmetricPremonoidalCategory.skeleton.whiskerRight
+    associator := SymmetricPremonoidalCategory.skeleton.associator
+    associator_inv := SymmetricPremonoidalCategory.skeleton.associator_inv
+    leftUnitor := SymmetricPremonoidalCategory.skeleton.leftUnitor
+    leftUnitor_inv := SymmetricPremonoidalCategory.skeleton.leftUnitor_inv
+    rightUnitor := SymmetricPremonoidalCategory.skeleton.rightUnitor
+    rightUnitor_inv := SymmetricPremonoidalCategory.skeleton.rightUnitor_inv
+    braiding := SymmetricPremonoidalCategory.skeleton.braiding
+  }
+
 instance SymmetricPremonoidalCategory.instOrderBot {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
@@ -122,11 +129,135 @@ class SymmetricMonoidalSubcategory (C)
   sliding: ∀{X Y X' Y' f g},
     contains X Y f -> contains X' Y' g -> OrdCommute f g
 
+theorem SymmetricMonoidalSubcategory.ext_premonoidal {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: SymmetricMonoidalSubcategory C}
+  (H: L.toSymmetricPremonoidalSubcategory = R.toSymmetricPremonoidalSubcategory)
+  : L = R := by cases L; cases R; cases H; rfl
+
+theorem SymmetricMonoidalSubcategory.ext {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: SymmetricMonoidalSubcategory C}
+  (H: L.contains = R.contains): L = R
+  := ext_premonoidal (SymmetricPremonoidalSubcategory.ext H)
+
+instance SymmetricMonoidalSubcategory.instPartialOrder {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : PartialOrder (SymmetricMonoidalSubcategory C) where
+  le L R := L.contains ≤ R.contains
+  le_refl _ _ _ := le_refl _
+  le_trans _ _ _ HL HR X Y := le_trans (HL X Y) (HR X Y)
+  le_antisymm _ _ HL HR := ext (le_antisymm HL HR)
+
+--TODO: Trivial, by isotopy
+def BinoidalCategory.Central.whiskerLeft {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {X Y: C} {f: X ⟶ Y}
+  (Z: C) (Hf: Central f): Central (Z ◁ f)
+  := sorry
+
+--TODO: Trivial, by isotopy
+def BinoidalCategory.Central.whiskerRight {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {X Y: C} {f: X ⟶ Y}
+  (Hf: Central f) (Z: C): Central (f ▷ Z)
+  := sorry
+
+theorem SymmetricMonoidalSubcategory.le_ext {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: SymmetricMonoidalSubcategory C}
+  (H: L.contains ≤ R.contains): L ≤ R
+  := H
+
+theorem SymmetricPremonoidalCategory.skeleton.central
+  [Category C] [TensorMonoid C] [M: PremonoidalCategory C]
+  [B: SymmetricPremonoidalCategory C]
+  {X Y f}
+  (H: SymmetricPremonoidalCategory.skeleton C X Y f)
+  : Central f := by induction H with
+  | id X => apply Central.id
+  | comp _ _ If Ig => exact If.comp Ig
+  | whiskerLeft Z _ If => exact If.whiskerLeft Z
+  | whiskerRight _ Z If => exact If.whiskerRight Z
+  | associator => exact (M.associator_centrality _ _ _).hom
+  | associator_inv => exact (M.associator_centrality _ _ _).inv
+  | leftUnitor => exact (M.leftUnitor_centrality _).hom
+  | leftUnitor_inv => exact (M.leftUnitor_centrality _).inv
+  | rightUnitor => exact (M.rightUnitor_centrality _).hom
+  | rightUnitor_inv => exact (M.rightUnitor_centrality _).inv
+  | braiding => exact (B.braiding_centrality _ _).hom
+
+instance SymmetricMonoidalSubcategory.instBot {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : Bot (SymmetricMonoidalSubcategory C) where
+  bot := {
+    toSymmetricPremonoidalSubcategory := ⊥
+    sliding := λHf _ => Hf.central.commute_left _
+  }
+
+instance SymmetricMonoidalSubcategory.instOrderBot {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : OrderBot (SymmetricMonoidalSubcategory C) where
+  bot_le W _ _ _ Hf := Hf.inclusion W.toSymmetricPremonoidalSubcategory
+
 class CentralSubcategory (C)
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [B: SymmetricPremonoidalCategory C]
   extends SymmetricMonoidalSubcategory C where
   centrality: ∀{X Y f}, contains X Y f -> Central f
+
+theorem CentralSubcategory.ext_monoidal {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: CentralSubcategory C}
+  (H: L.toSymmetricMonoidalSubcategory = R.toSymmetricMonoidalSubcategory)
+  : L = R := by cases L; cases R; cases H; rfl
+
+theorem CentralSubcategory.ext {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: CentralSubcategory C}
+  (H: L.contains = R.contains): L = R
+  := ext_monoidal (SymmetricMonoidalSubcategory.ext H)
+
+instance CentralSubcategory.instPartialOrder {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : PartialOrder (CentralSubcategory C) where
+  le L R := L.contains ≤ R.contains
+  le_refl _ _ _ := le_refl _
+  le_trans _ _ _ HL HR X Y := le_trans (HL X Y) (HR X Y)
+  le_antisymm _ _ HL HR := ext (le_antisymm HL HR)
+
+theorem CentralSubcategory.le_ext {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  {L R: CentralSubcategory C}
+  (H: L.contains ≤ R.contains): L ≤ R
+  := H
+
+instance CentralSubcategory.instBot {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : Bot (CentralSubcategory C) where
+  bot := {
+    toSymmetricMonoidalSubcategory := ⊥
+    centrality := λHf => Hf.central
+  }
+
+instance CentralSubcategory.instOrderBot {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : OrderBot (CentralSubcategory C) where
+  bot_le W _ _ _ Hf := Hf.inclusion W.toSymmetricPremonoidalSubcategory
 
 def CentralSubcategory.mk' {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]

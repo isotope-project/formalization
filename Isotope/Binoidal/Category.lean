@@ -86,12 +86,60 @@ abbrev OrdCommute {C} [Category C] [TensorProduct C] [BinoidalCategory C]
   {X Y Z W: C} (f: X ⟶ Y) (g: Z ⟶ W)
   := f ⋉ g = f ⋊ g
 
-def OrdCommute.monoidal {C} [Category C] [MonoidalCategory C] {X Y Z W: C}
+theorem OrdCommute.monoidal {C} [Category C] [MonoidalCategory C] {X Y Z W: C}
   (f: X ⟶ Y) (g: Z ⟶ W): OrdCommute f g
   := by simp [
     OrdCommute, leftTensorHom, rightTensorHom, whiskerLeft, whiskerRight,
     MonoidalCategory.whisker_exchange
   ]
+
+theorem OrdCommute.id_left {C}
+  [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y} (Z: C) (f: X ⟶ Y): OrdCommute (𝟙 Z) f
+  := by simp [
+    OrdCommute, leftTensorHom, rightTensorHom, id_whiskerRight
+  ]
+
+theorem OrdCommute.id_right {C}
+  [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y} (f: X ⟶ Y) (Z: C): OrdCommute f (𝟙 Z)
+  := by simp [
+    OrdCommute, leftTensorHom, rightTensorHom, whiskerLeft_id
+  ]
+
+def OrdCommute.comp_left {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y Z W W': C} {f: X ⟶ Y} {g: Y ⟶ Z} {h: W ⟶ W'}
+  (Hf: OrdCommute f h) (Hg: OrdCommute g h): OrdCommute (f ≫ g) h
+  := by
+    simp only [
+      OrdCommute, leftTensorHom,
+      whiskerRight_comp, Category.assoc, rightTensorHom]
+    rw [
+      <-leftTensorHom, Hg,
+      <-Category.assoc,
+      <-rightTensorHom,
+      <-Hf,
+      leftTensorHom,
+      Category.assoc
+    ]
+    rfl
+
+def OrdCommute.comp_right {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y Z W W': C} {f: X ⟶ Y} {g: Y ⟶ Z} {h: W ⟶ W'}
+  (Hf: OrdCommute h f) (Hg: OrdCommute h g): OrdCommute h (f ≫ g)
+  := by
+    simp only [
+      OrdCommute, leftTensorHom,
+      whiskerLeft_comp, rightTensorHom, Category.assoc]
+    rw [
+      <-rightTensorHom, <-Hg,
+      <-Category.assoc,
+      <-leftTensorHom,
+      Hf,
+      leftTensorHom,
+      rightTensorHom,
+      Category.assoc
+    ]
 
 class Commute {C} [Category C] [TensorProduct C] [BinoidalCategory C]
   {X Y Z W: C} (f: X ⟶ Y) (g: Z ⟶ W): Prop
@@ -106,6 +154,17 @@ def Commute.symm
   : Commute g f
   := ⟨H.2, H.1⟩
 
+def Commute.comp_left {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y Z W W': C} {f: X ⟶ Y} {g: Y ⟶ Z} {h: W ⟶ W'}
+  (Hf: Commute f h) (Hg: Commute g h): Commute (f ≫ g) h where
+  left := Hf.left.comp_left Hg.left
+  right := Hf.right.comp_right Hg.right
+
+def Commute.comp_right {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y Z W W': C} {f: X ⟶ Y} {g: Y ⟶ Z} {h: W ⟶ W'}
+  (Hf: Commute f h) (Hg: Commute g h): Commute h (f ≫ g)
+  := (Hf.comp_left Hg).symm
+
 def Commute.monoidal {C} [Category C] [MonoidalCategory C] {X Y Z W: C}
   (f: X ⟶ Y) (g: Z ⟶ W): Commute f g
   := ⟨OrdCommute.monoidal f g, OrdCommute.monoidal g f⟩
@@ -117,13 +176,22 @@ def Commute.monoidal {C} [Category C] [MonoidalCategory C] {X Y Z W: C}
 --   := Commute.monoidal f g
 
 class Central {C} [Category C] [TensorProduct C] [BinoidalCategory C]
-  {X Y: C} (f: X ⟶ Y) :=
+  {X Y: C} (f: X ⟶ Y): Prop :=
   commute: ∀{Z W}, ∀g: Z ⟶ W, Commute f g
   commute_left: ∀{Z W}, ∀g: Z ⟶ W, OrdCommute f g := λg => (commute g).left
   commute_right: ∀{Z W}, ∀g: Z ⟶ W, OrdCommute g f := λg => (commute g).right
 
+def Central.id {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  (X: C): Central (𝟙 X) where
+  commute _ := ⟨OrdCommute.id_left _ _, OrdCommute.id_right _ _⟩
+
+def Central.comp {C} [Category C] [TensorProduct C] [BinoidalCategory C]
+  {X Y Z: C} {f: X ⟶ Y} {g: Y ⟶ Z}
+  (Hf: Central f) (Hg: Central g): Central (f ≫ g) where
+  commute _ := Commute.comp_left (Hf.commute _) (Hg.commute _)
+
 class CentralIso {C} [Category C] [TensorProduct C] [BinoidalCategory C]
-  {X Y: C} (f: X ≅ Y) :=
+  {X Y: C} (f: X ≅ Y): Prop :=
   hom: Central f.hom
   inv: Central f.inv
 
