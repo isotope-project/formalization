@@ -9,3 +9,4 @@ import Isotope.Premonoidal.Substructural
 import Isotope.Effectful.Category
 import Isotope.Effectful.Braided
 import Isotope.WideSubcategory.Basic
+import Isotope.WideSubcategory.Binoidal
