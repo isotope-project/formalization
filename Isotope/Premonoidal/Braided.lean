@@ -9,7 +9,8 @@ open CategoryTheory
 open PremonoidalCategory
 open BinoidalCategory
 
-class BraidedPremonoidalCategory (C: Type u) [Category C] [TensorMonoid C] [PremonoidalCategory C]
+class BraidedPremonoidalCategory (C: Type u)
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
 where
   braiding : ∀ X Y : C, X ⊗ Y ≅ Y ⊗ X
   braiding_left_naturality : ∀ {X Y: C} (f: X ⟶ Y) (Z),
@@ -23,7 +24,8 @@ where
     (associator X Y Z).inv ≫ (braiding (X ⊗ Y) Z).hom ≫ (associator Z X Y).inv =
     whiskerLeft X (braiding Y Z).hom ≫ (associator X Z Y).inv ≫ whiskerRight (braiding X Z).hom Y
 
-class SymmetricPremonoidalCategory (C: Type u) [Category C] [TensorMonoid C] [PremonoidalCategory C]
+class SymmetricPremonoidalCategory (C: Type u)
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
 extends BraidedPremonoidalCategory C where
   symmetry : ∀ X Y : C, (braiding X Y).hom ≫ (braiding Y X).hom = 𝟙 (X ⊗ Y)
 namespace BraidedPremonoidalCategory
