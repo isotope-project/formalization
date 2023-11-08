@@ -14,10 +14,9 @@ class BinoidalSubcategory (C)
   [Category C] [TensorProduct C] [BinoidalCategory C]
   extends WideSubcategory C where
   whiskerLeft: ∀{X Y f},
-    contains X Y f -> (Z: C) -> contains (Z ⊗ X) (Z ⊗ Y) (Z ◁ f)
+    (Z: C) -> contains X Y f -> contains (Z ⊗ X) (Z ⊗ Y) (Z ◁ f)
   whiskerRight: ∀{X Y f},
-    (Z: C) -> contains X Y f -> contains (X ⊗ Z) (Y ⊗ Z) (f ▷ Z)
-
+    contains X Y f -> (Z: C) -> contains (X ⊗ Z) (Y ⊗ Z) (f ▷ Z)
 
 theorem BinoidalSubcategory.ext_wide {C}
   [Category C] [TensorProduct C] [BinoidalCategory C]
@@ -57,9 +56,9 @@ instance BinoidalSubcategory.instBot (C)
   : Bot (BinoidalSubcategory C) where
   bot := {
     toWideSubcategory := ⊥
-    whiskerLeft := λ⟨HXY, Hf⟩ Z => by
+    whiskerLeft := λZ ⟨HXY, Hf⟩ => by
       cases HXY; cases Hf; exists rfl; simp [B.whiskerLeft_id]
-    whiskerRight := λZ ⟨HXY, Hf⟩ => by
+    whiskerRight := λ⟨HXY, Hf⟩ Z => by
       cases HXY; cases Hf; exists rfl; simp [B.id_whiskerRight]
   }
 
@@ -87,8 +86,8 @@ instance BinoidalSubcategory.instInf (C)
   : Inf (BinoidalSubcategory C) where
   inf L R := {
     toWideSubcategory := L.toWideSubcategory ⊓ R.toWideSubcategory
-    whiskerLeft := λHf C => ⟨L.whiskerLeft Hf.1 C, R.whiskerLeft Hf.2 C⟩
-    whiskerRight := λC Hf => ⟨L.whiskerRight C Hf.1, R.whiskerRight C Hf.2⟩
+    whiskerLeft := λZ Hf => ⟨L.whiskerLeft Z Hf.1, R.whiskerLeft Z Hf.2⟩
+    whiskerRight := λHf Z => ⟨L.whiskerRight Hf.1 Z, R.whiskerRight Hf.2 Z⟩
   }
 
 instance BinoidalSubcategory.instSemilatticeInf (C)
