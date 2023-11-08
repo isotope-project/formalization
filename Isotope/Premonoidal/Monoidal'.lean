@@ -8,7 +8,9 @@ open CategoryTheory
 open PremonoidalCategory
 open BinoidalCategory
 
-class MonoidalCategory' (C: Type u) [Category C] [TensorMonoid C] [PremonoidalCategory C] :=
+class MonoidalCategory' (C: Type u)
+  [Category C] [TensorMonoid C]
+  [PremonoidalCategory C] :=
   /-- Sliding -/
   sliding: ∀{X₁ Y₁ X₂ Y₂: C}, ∀f: X₁ ⟶ Y₁, ∀g: X₂ ⟶ Y₂, f ⋉ g = f ⋊ g
   /-- Centrality -/

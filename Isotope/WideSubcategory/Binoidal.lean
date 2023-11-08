@@ -97,6 +97,16 @@ instance BinoidalSubcategory.instSemilatticeInf (C)
   inf_le_right _ _ := le_ext' inf_le_right
   le_inf _ _ _ HL HR := le_ext' (le_inf HL HR)
 
+def CenterQuiver (C)
+  [Category C] [TensorProduct C] [BinoidalCategory C]
+  : WideSubquiver C
+  := λ_ _ f => Central f
+
+def CentralQuiver {C}
+  [Category C] [TensorProduct C] [BinoidalCategory C]
+  (W: WideSubquiver C)
+  := W ≤ CenterQuiver C
+
 -- instance BinoidalSubcategory.instSInf (C)
 --   [Category C] [TensorProduct C] [BinoidalCategory C]
 --   : InfSet (BinoidalSubcategory C) where

@@ -212,7 +212,7 @@ class CentralSubcategory (C)
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [B: SymmetricPremonoidalCategory C]
   extends SymmetricMonoidalSubcategory C where
-  centrality: ∀{X Y f}, contains X Y f -> Central f
+  centrality: CentralQuiver contains
 
 theorem CentralSubcategory.ext_monoidal {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
@@ -250,7 +250,7 @@ instance CentralSubcategory.instBot {C}
   : Bot (CentralSubcategory C) where
   bot := {
     toSymmetricMonoidalSubcategory := ⊥
-    centrality := λHf => Hf.central
+    centrality := λ_ _ _ Hf => Hf.central
   }
 
 instance CentralSubcategory.instOrderBot {C}
@@ -263,8 +263,8 @@ def CentralSubcategory.mk' {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
   (S: SymmetricPremonoidalSubcategory C)
-  (centrality: ∀{X Y f}, S.contains X Y f -> Central f)
+  (centrality: CentralQuiver S.contains)
   : CentralSubcategory C where
   toSymmetricPremonoidalSubcategory := S
-  sliding Hf _ := (centrality Hf).commute_left _
+  sliding Hf _ := (centrality _ _ Hf).commute_left _
   centrality := centrality
