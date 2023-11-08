@@ -152,7 +152,6 @@ instance SymmetricMonoidalSubcategory.instPartialOrder {C}
   le_trans _ _ _ HL HR X Y := le_trans (HL X Y) (HR X Y)
   le_antisymm _ _ HL HR := ext (le_antisymm HL HR)
 
---TODO: Trivial, by isotopy
 def BinoidalCategory.Central.whiskerLeft {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
@@ -218,7 +217,6 @@ def BinoidalCategory.Central.whiskerLeft {C}
       _ = _ := by simp [rightTensorHom]
   }
 
---TODO: Trivial, by isotopy
 def BinoidalCategory.Central.whiskerRight {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   {X Y: C} {f: X ⟶ Y}
@@ -252,7 +250,35 @@ def BinoidalCategory.Central.whiskerRight {C}
         ]
       _ = _ := by simp [rightTensorHom]
     right := calc
-      _ = _ := sorry
+      _ = (g ▷ _
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ _ ◁ (f ▷ _))
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).inv
+        ≫ (g ⋉ f) ▷ _
+        ≫ (associator _ _ _).hom
+        := by simp [
+          associator_inv_left_naturality,
+          <-associator_mid_naturality,
+          leftTensorHom,
+          whiskerRight_comp
+        ]
+      _ = (associator _ _ _).inv
+        ≫ (g ⋊ f) ▷ _
+        ≫ (associator _ _ _).hom
+        := by rw [(Hf.commute g).right]
+      _ = (_ ◁ (f ▷ _)
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ g ▷ _)
+        := by simp [
+          associator_inv_mid_naturality,
+          <-associator_left_naturality,
+          rightTensorHom,
+          whiskerRight_comp
+        ]
+      _ = _ := by simp [rightTensorHom]
   }
 
 theorem SymmetricMonoidalSubcategory.le_ext {C}
