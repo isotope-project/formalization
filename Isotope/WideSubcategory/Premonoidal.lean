@@ -159,38 +159,66 @@ def BinoidalCategory.Central.whiskerLeft {C}
   (Z: C) (Hf: Central f): Central (Z ◁ f)
   where
   commute g := {
-    left :=
-      calc
-        _ = ((Z ◁ f) ▷ _
-          ≫ (associator _ _ _).hom)
-          ≫ ((associator _ _ _).inv
-          ≫ _ ◁ g)
-          := by simp [leftTensorHom]
-        _ = (associator _ _ _).hom
-          ≫ Z ◁ (f ⋉ g)
-          ≫ (associator _ _ _).inv
-          := by simp [
-            associator_mid_naturality,
-            <-associator_inv_right_naturality,
-            whiskerLeft_comp,
-            leftTensorHom
-          ] --factor out as lemma?
-        _ = (associator _ _ _).hom
-          ≫ Z ◁ (f ⋊ g)
-          ≫ (associator _ _ _).inv
-          := by rw [(Hf.commute g).left]
-        _ = (_ ◁ g
-          ≫ (associator _ _ _).hom)
-          ≫ ((associator _ _ _).inv
-          ≫ (Z ◁ f) ▷ _)
-          := by simp [
-            associator_right_naturality,
-            <-associator_inv_mid_naturality,
-            whiskerLeft_comp,
-            rightTensorHom
-          ]
-        _ = (Z ◁ f) ⋊ g := by simp [rightTensorHom]
-    right := sorry
+    left := calc
+      _ = ((Z ◁ f) ▷ _
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ _ ◁ g)
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).hom
+        ≫ Z ◁ (f ⋉ g)
+        ≫ (associator _ _ _).inv
+        := by simp [
+          associator_mid_naturality,
+          <-associator_inv_right_naturality,
+          leftTensorHom,
+          whiskerLeft_comp
+        ] --factor out as lemma?
+      _ = (associator _ _ _).hom
+        ≫ Z ◁ (f ⋊ g)
+        ≫ (associator _ _ _).inv
+        := by rw [(Hf.commute g).left]
+      _ = (_ ◁ g
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ (Z ◁ f) ▷ _)
+        := by simp [
+          associator_right_naturality,
+          <-associator_inv_mid_naturality,
+          whiskerLeft_comp,
+          rightTensorHom
+        ]
+      _ = (Z ◁ f) ⋊ g := by simp [rightTensorHom]
+    right := calc
+      _ = (g ▷ _
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ _ ◁ (Z ◁ f))
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).inv
+        ≫ ((g ▷ Z) ⋉ f)
+        ≫ (associator _ _ _).hom
+        := by simp [
+          associator_inv_left_naturality,
+          <-associator_right_naturality,
+          leftTensorHom,
+          whiskerLeft_comp
+        ]
+      _ = (associator _ _ _).inv
+        ≫ ((g ▷ Z) ⋊ f)
+        ≫ (associator _ _ _).hom
+        := by rw [(Hf.commute _).right]
+      _ = (_ ◁ (_ ◁ f)
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ g ▷ _)
+        := by simp [
+          associator_inv_right_naturality,
+          <-associator_left_naturality,
+          whiskerLeft_comp,
+          rightTensorHom
+        ]
+      _ = _ := by simp [rightTensorHom]
   }
 
 --TODO: Trivial, by isotopy
