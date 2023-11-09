@@ -13,6 +13,8 @@ import Isotope.Premonoidal.Braided
 open CategoryTheory
 open BinoidalCategory
 open PremonoidalCategory
+open BraidedPremonoidalCategory
+open SymmetricPremonoidalCategory
 
 class SymmetricPremonoidalSubcategory (C)
   [Category C] [TensorMonoid C] [M: PremonoidalCategory C]
@@ -152,135 +154,6 @@ instance SymmetricMonoidalSubcategory.instPartialOrder {C}
   le_trans _ _ _ HL HR X Y := le_trans (HL X Y) (HR X Y)
   le_antisymm _ _ HL HR := ext (le_antisymm HL HR)
 
-def BinoidalCategory.Central.whiskerLeft {C}
-  [Category C] [TensorMonoid C] [PremonoidalCategory C]
-  {X Y: C} {f: X ⟶ Y}
-  (Z: C) (Hf: Central f): Central (Z ◁ f) where
-  commute g := {
-    left := calc
-      _ = ((Z ◁ f) ▷ _
-        ≫ (associator _ _ _).hom)
-        ≫ ((associator _ _ _).inv
-        ≫ _ ◁ g)
-        := by simp [leftTensorHom]
-      _ = (associator _ _ _).hom
-        ≫ Z ◁ (f ⋉ g)
-        ≫ (associator _ _ _).inv
-        := by simp [
-          associator_mid_naturality,
-          <-associator_inv_right_naturality,
-          leftTensorHom,
-          whiskerLeft_comp
-        ] --factor out as lemma?
-      _ = (associator _ _ _).hom
-        ≫ Z ◁ (f ⋊ g)
-        ≫ (associator _ _ _).inv
-        := by rw [(Hf.commute g).left]
-      _ = (_ ◁ g
-        ≫ (associator _ _ _).hom)
-        ≫ ((associator _ _ _).inv
-        ≫ (Z ◁ f) ▷ _)
-        := by simp [
-          associator_right_naturality,
-          <-associator_inv_mid_naturality,
-          whiskerLeft_comp,
-          rightTensorHom
-        ]
-      _ = (Z ◁ f) ⋊ g := by simp [rightTensorHom]
-    right := calc
-      _ = (g ▷ _
-        ≫ (associator _ _ _).inv)
-        ≫ ((associator _ _ _).hom
-        ≫ _ ◁ (Z ◁ f))
-        := by simp [leftTensorHom]
-      _ = (associator _ _ _).inv
-        ≫ ((g ▷ Z) ⋉ f)
-        ≫ (associator _ _ _).hom
-        := by simp [
-          associator_inv_left_naturality,
-          <-associator_right_naturality,
-          leftTensorHom
-        ]
-      _ = (associator _ _ _).inv
-        ≫ ((g ▷ Z) ⋊ f)
-        ≫ (associator _ _ _).hom
-        := by rw [(Hf.commute _).right]
-      _ = (_ ◁ (_ ◁ f)
-        ≫ (associator _ _ _).inv)
-        ≫ ((associator _ _ _).hom
-        ≫ g ▷ _)
-        := by simp [
-          associator_inv_right_naturality,
-          <-associator_left_naturality,
-          rightTensorHom
-        ]
-      _ = _ := by simp [rightTensorHom]
-  }
-
-def BinoidalCategory.Central.whiskerRight {C}
-  [Category C] [TensorMonoid C] [PremonoidalCategory C]
-  {X Y: C} {f: X ⟶ Y}
-  (Hf: Central f) (Z: C): Central (f ▷ Z) where
-  commute g := {
-    left := calc
-      _ = ((f ▷ _) ▷ _
-        ≫ (associator _ _ _).hom)
-        ≫ ((associator _ _ _).inv
-        ≫ _ ◁ g) := by simp [leftTensorHom]
-      _ = (associator _ _ _).hom
-        ≫ f ⋉ (_ ◁ g)
-        ≫ (associator _ _ _).inv
-        := by simp [
-          associator_left_naturality,
-          <-associator_inv_right_naturality,
-          leftTensorHom
-        ]
-      _ = (associator _ _ _).hom
-        ≫ f ⋊ (_ ◁ g)
-        ≫ (associator _ _ _).inv
-        := by rw [(Hf.commute _).left]
-      _ = (_ ◁ g
-        ≫ (associator _ _ _).hom)
-        ≫ ((associator _ _ _).inv
-        ≫ (f ▷ _) ▷ _)
-        := by simp [
-          associator_right_naturality,
-          <-associator_inv_left_naturality,
-          rightTensorHom
-        ]
-      _ = _ := by simp [rightTensorHom]
-    right := calc
-      _ = (g ▷ _
-        ≫ (associator _ _ _).inv)
-        ≫ ((associator _ _ _).hom
-        ≫ _ ◁ (f ▷ _))
-        := by simp [leftTensorHom]
-      _ = (associator _ _ _).inv
-        ≫ (g ⋉ f) ▷ _
-        ≫ (associator _ _ _).hom
-        := by simp [
-          associator_inv_left_naturality,
-          <-associator_mid_naturality,
-          leftTensorHom,
-          whiskerRight_comp
-        ]
-      _ = (associator _ _ _).inv
-        ≫ (g ⋊ f) ▷ _
-        ≫ (associator _ _ _).hom
-        := by rw [(Hf.commute g).right]
-      _ = (_ ◁ (f ▷ _)
-        ≫ (associator _ _ _).inv)
-        ≫ ((associator _ _ _).hom
-        ≫ g ▷ _)
-        := by simp [
-          associator_inv_mid_naturality,
-          <-associator_left_naturality,
-          rightTensorHom,
-          whiskerRight_comp
-        ]
-      _ = _ := by simp [rightTensorHom]
-  }
-
 theorem SymmetricMonoidalSubcategory.le_ext {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
@@ -372,6 +245,33 @@ instance CentralSubcategory.instOrderBot {C}
   : OrderBot (CentralSubcategory C) where
   bot_le W _ _ _ Hf := Hf.inclusion W.toSymmetricPremonoidalSubcategory
 
+def BinoidalSubcategory.Center (C)
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  : BinoidalSubcategory C where
+  toWideSubcategory := WideSubcategory.Center C
+  whiskerLeft := Central.whiskerLeft
+  whiskerRight := Central.whiskerRight
+
+def SymmetricPremonoidalSubcategory.Center (C)
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : SymmetricPremonoidalSubcategory C where
+  toBinoidalSubcategory := BinoidalSubcategory.Center C
+  associator X Y Z := (associator_centrality X Y Z).hom
+  associator_inv X Y Z := (associator_centrality X Y Z).inv
+  leftUnitor X := (leftUnitor_centrality X).hom
+  leftUnitor_inv X := (leftUnitor_centrality X).inv
+  rightUnitor X := (rightUnitor_centrality X).hom
+  rightUnitor_inv X := (rightUnitor_centrality X).inv
+  braiding X Y := (braiding_centrality X Y).hom
+
+def SymmetricMonoidalSubcategory.Center (C)
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : SymmetricMonoidalSubcategory C where
+  toSymmetricPremonoidalSubcategory := SymmetricPremonoidalSubcategory.Center C
+  sliding Hf _ := Hf.commute_left _
+
 def CentralSubcategory.mk' {C}
   [Category C] [TensorMonoid C] [PremonoidalCategory C]
   [SymmetricPremonoidalCategory C]
@@ -381,3 +281,18 @@ def CentralSubcategory.mk' {C}
   toSymmetricPremonoidalSubcategory := S
   sliding Hf _ := (centrality _ _ Hf).commute_left _
   centrality := centrality
+
+instance CentralSubcategory.instTop {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : Top (CentralSubcategory C) where
+  top := {
+    toSymmetricMonoidalSubcategory := SymmetricMonoidalSubcategory.Center C
+    centrality := le_refl _
+  }
+
+instance CentralSubcategory.instOrderTop {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  [SymmetricPremonoidalCategory C]
+  : OrderTop (CentralSubcategory C) where
+  le_top W := W.centrality

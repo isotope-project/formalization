@@ -153,6 +153,137 @@ theorem PremonoidalCategory.associator_inv_right_naturality {C: Type u}
       := by rw [associator_right_naturality]
     _ = _ := by simp
 
+open PremonoidalCategory
+
+def BinoidalCategory.Central.whiskerLeft {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  {X Y: C} {f: X ⟶ Y}
+  (Z: C) (Hf: Central f): Central (Z ◁ f) where
+  commute g := {
+    left := calc
+      _ = ((Z ◁ f) ▷ _
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ _ ◁ g)
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).hom
+        ≫ Z ◁ (f ⋉ g)
+        ≫ (associator _ _ _).inv
+        := by simp [
+          associator_mid_naturality,
+          <-associator_inv_right_naturality,
+          leftTensorHom,
+          whiskerLeft_comp
+        ] --factor out as lemma?
+      _ = (associator _ _ _).hom
+        ≫ Z ◁ (f ⋊ g)
+        ≫ (associator _ _ _).inv
+        := by rw [(Hf.commute g).left]
+      _ = (_ ◁ g
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ (Z ◁ f) ▷ _)
+        := by simp [
+          associator_right_naturality,
+          <-associator_inv_mid_naturality,
+          whiskerLeft_comp,
+          rightTensorHom
+        ]
+      _ = (Z ◁ f) ⋊ g := by simp [rightTensorHom]
+    right := calc
+      _ = (g ▷ _
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ _ ◁ (Z ◁ f))
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).inv
+        ≫ ((g ▷ Z) ⋉ f)
+        ≫ (associator _ _ _).hom
+        := by simp [
+          associator_inv_left_naturality,
+          <-associator_right_naturality,
+          leftTensorHom
+        ]
+      _ = (associator _ _ _).inv
+        ≫ ((g ▷ Z) ⋊ f)
+        ≫ (associator _ _ _).hom
+        := by rw [(Hf.commute _).right]
+      _ = (_ ◁ (_ ◁ f)
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ g ▷ _)
+        := by simp [
+          associator_inv_right_naturality,
+          <-associator_left_naturality,
+          rightTensorHom
+        ]
+      _ = _ := by simp [rightTensorHom]
+  }
+
+def BinoidalCategory.Central.whiskerRight {C}
+  [Category C] [TensorMonoid C] [PremonoidalCategory C]
+  {X Y: C} {f: X ⟶ Y}
+  (Hf: Central f) (Z: C): Central (f ▷ Z) where
+  commute g := {
+    left := calc
+      _ = ((f ▷ _) ▷ _
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ _ ◁ g) := by simp [leftTensorHom]
+      _ = (associator _ _ _).hom
+        ≫ f ⋉ (_ ◁ g)
+        ≫ (associator _ _ _).inv
+        := by simp [
+          associator_left_naturality,
+          <-associator_inv_right_naturality,
+          leftTensorHom
+        ]
+      _ = (associator _ _ _).hom
+        ≫ f ⋊ (_ ◁ g)
+        ≫ (associator _ _ _).inv
+        := by rw [(Hf.commute _).left]
+      _ = (_ ◁ g
+        ≫ (associator _ _ _).hom)
+        ≫ ((associator _ _ _).inv
+        ≫ (f ▷ _) ▷ _)
+        := by simp [
+          associator_right_naturality,
+          <-associator_inv_left_naturality,
+          rightTensorHom
+        ]
+      _ = _ := by simp [rightTensorHom]
+    right := calc
+      _ = (g ▷ _
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ _ ◁ (f ▷ _))
+        := by simp [leftTensorHom]
+      _ = (associator _ _ _).inv
+        ≫ (g ⋉ f) ▷ _
+        ≫ (associator _ _ _).hom
+        := by simp [
+          associator_inv_left_naturality,
+          <-associator_mid_naturality,
+          leftTensorHom,
+          whiskerRight_comp
+        ]
+      _ = (associator _ _ _).inv
+        ≫ (g ⋊ f) ▷ _
+        ≫ (associator _ _ _).hom
+        := by rw [(Hf.commute g).right]
+      _ = (_ ◁ (f ▷ _)
+        ≫ (associator _ _ _).inv)
+        ≫ ((associator _ _ _).hom
+        ≫ g ▷ _)
+        := by simp [
+          associator_inv_mid_naturality,
+          <-associator_left_naturality,
+          rightTensorHom,
+          whiskerRight_comp
+        ]
+      _ = _ := by simp [rightTensorHom]
+  }
+
 -- theorem PremonoidalCategory.whiskerLeft_leftTensorHom {C: Type u}
 --   [Category C] [TensorMonoid C] [PremonoidalCategory C]
 --   {X Y X' Y': C} (Z: C) (f: X ⟶ Y) (g: X' ⟶ Y')
