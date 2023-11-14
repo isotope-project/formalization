@@ -12,3 +12,4 @@ import Isotope.WideSubcategory.Binoidal
 import Isotope.WideSubcategory.Premonoidal
 import Isotope.Substructural.Category
 import Isotope.Utils.Wk
+import Isotope.Trace.Basic
