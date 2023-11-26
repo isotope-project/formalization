@@ -28,6 +28,9 @@ structure Transparency where
   aff: Bool
   rel: Bool
 
+def HasLin.lin {T} [HasLin T] (t: T) (l: Transparency): Bool
+  := (l.aff → HasLin.aff t) ∧ (l.rel → HasLin.rel t)
+
 instance Transparency.instPartialOrder: PartialOrder Transparency where
   le l r := l.aff ≤ r.aff ∧ l.rel ≤ r.rel
   le_refl := by simp
@@ -77,8 +80,31 @@ inductive Ctx.split {T} [HasLin T]: Ctx T → Ctx T → Ctx T → Type
   | left {Γ Δ Ξ} (v l):  l ≤ v → split Γ Δ Ξ → split (v::Γ) (l::Δ) Ξ
   | right {Γ Δ Ξ} (v r): r ≤ v → split Γ Δ Ξ → split (v::Γ) Δ (r::Ξ)
   | discard {Γ Δ Ξ} (v): HasLin.aff v → split Γ Δ Ξ → split (v::Γ) Δ Ξ
-  | copy {Γ Δ Ξ} (v l r): HasLin.rel v → l ≤ v → r ≤ v → split Γ Δ Ξ
+  | dup {Γ Δ Ξ} (v l r): HasLin.rel v → l ≤ v → r ≤ v → split Γ Δ Ξ
     → split (v::Γ) (l::Δ) (r::Ξ)
+
+inductive Ctx.split.strict {T} [HasLin T]
+  : {Γ Δ Ξ: Ctx T} -> split Γ Δ Ξ -> Prop
+  | nil: strict nil
+  | left (v H): strict H → strict (left v v (le_refl v) H)
+  | right (v H): strict H → strict (right v v (le_refl v) H)
+  | dup (v Hr H)
+    : strict H → strict (dup v v v Hr (le_refl v) (le_refl v) H)
+
+inductive Ctx.ssplit {T} [HasLin T]: Ctx T → Ctx T → Ctx T → Type
+  | nil: ssplit [] [] []
+  | left {Γ Δ Ξ} (v):  ssplit Γ Δ Ξ → ssplit (v::Γ) (v::Δ) Ξ
+  | right {Γ Δ Ξ} (v): ssplit Γ Δ Ξ → ssplit (v::Γ) Δ (v::Ξ)
+  | dup {Γ Δ Ξ} (v): HasLin.rel v → ssplit Γ Δ Ξ
+    → ssplit (v::Γ) (v::Δ) (v::Ξ)
+
+def Ctx.ssplit.toSplit {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : ssplit Γ Δ Ξ → split Γ Δ Ξ
+  | nil => split.nil
+  | left v H => split.left v v (le_refl v) (ssplit.toSplit H)
+  | right v H => split.right v v (le_refl v) (ssplit.toSplit H)
+  | dup v Hr H =>
+    split.dup v v v Hr (le_refl v) (le_refl v) (ssplit.toSplit H)
 
 def Ctx.split.swap {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   : split Γ Δ Ξ -> split Γ Ξ Δ
@@ -86,8 +112,22 @@ def Ctx.split.swap {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   | left v l Hl H => right v l Hl (swap H)
   | right v r Hl H => left v r Hl (swap H)
   | discard v Ha Hl => discard v Ha (swap Hl)
-  | copy v l r H Hl Hr HΓ
-    => copy v r l H Hr Hl (swap HΓ)
+  | dup v l r H Hl Hr HΓ
+    => dup v r l H Hr Hl (swap HΓ)
+
+def Ctx.ssplit.swap {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : ssplit Γ Δ Ξ -> ssplit Γ Ξ Δ
+  | nil => nil
+  | left v H => right v (swap H)
+  | right v H => left v (swap H)
+  | dup v Hr H => dup v Hr (swap H)
+
+def Ctx.ssplit.swap_toSplit {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : (H: ssplit Γ Δ Ξ) -> H.swap.toSplit = H.toSplit.swap
+  | nil => rfl
+  | left v H => congrArg _ (swap_toSplit H)
+  | right v H => congrArg _ (swap_toSplit H)
+  | dup v Hr H => congrArg _ (swap_toSplit H)
 
 def Ctx.split.swap_idem {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   : Function.LeftInverse (@swap T _ Γ Δ Ξ) (@swap T _ Γ Ξ Δ)
@@ -95,10 +135,24 @@ def Ctx.split.swap_idem {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   | left v l Hl HΓ => by simp [swap, swap_idem HΓ]
   | right v r Hr HΓ => by simp [swap, swap_idem HΓ]
   | discard v Ha HΓ => by simp [swap, swap_idem HΓ]
-  | copy v l r Har Hl Hr HΓ => by simp [swap, swap_idem HΓ]
+  | dup v l r Har Hl Hr HΓ => by simp [swap, swap_idem HΓ]
+
+def Ctx.ssplit.swap_idem {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : Function.LeftInverse (@swap T _ Γ Δ Ξ) (@swap T _ Γ Ξ Δ)
+  | nil => rfl
+  | left v H => by simp [swap, swap_idem H]
+  | right v H => by simp [swap, swap_idem H]
+  | dup v Hr H => by simp [swap, swap_idem H]
 
 def Ctx.split.swap_equiv {T} [HasLin T] (Γ Δ Ξ: Ctx T)
   : Equiv (split Γ Δ Ξ) (split Γ Ξ Δ) where
+  toFun := swap
+  invFun := swap
+  left_inv := swap_idem
+  right_inv := swap_idem
+
+def Ctx.ssplit.swap_equiv {T} [HasLin T] (Γ Δ Ξ: Ctx T)
+  : Equiv (ssplit Γ Δ Ξ) (ssplit Γ Ξ Δ) where
   toFun := swap
   invFun := swap
   left_inv := swap_idem
@@ -110,11 +164,19 @@ theorem Ctx.split.left_length_decreasing {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   | left _ _ _ HΓ => Nat.succ_le_succ HΓ.left_length_decreasing
   | right _ _ _ HΓ => Nat.le_step HΓ.left_length_decreasing
   | discard _ _ HΓ => Nat.le_step HΓ.left_length_decreasing
-  | copy _ _ _ _ _ _ HΓ => Nat.succ_le_succ HΓ.left_length_decreasing
+  | dup _ _ _ _ _ _ HΓ => Nat.succ_le_succ HΓ.left_length_decreasing
+
+theorem Ctx.ssplit.left_length_decreasing {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  (H: ssplit Γ Δ Ξ): Δ.length ≤ Γ.length
+  := H.toSplit.left_length_decreasing
 
 theorem Ctx.split.right_length_decreasing {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   (H: split Γ Δ Ξ): Ξ.length ≤ Γ.length
   := H.swap.left_length_decreasing
+
+theorem Ctx.ssplit.right_length_decreasing {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  (H: ssplit Γ Δ Ξ): Ξ.length ≤ Γ.length
+  := H.toSplit.right_length_decreasing
 
 def Ctx.wk {T} [HasLin T] (Γ Δ: Ctx T) := Ctx.split Γ Δ []
 
@@ -130,6 +192,32 @@ def Ctx.wk.cons {T} [HasLin T] {Γ Δ: Ctx T}
 def Ctx.wk.discard {T} [HasLin T] {Γ Δ: Ctx T}
   : (v: Variable T) -> (Ha: HasLin.aff v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) Δ
   := Ctx.split.discard
+
+def Ctx.split.left_decompose {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : Ctx.split Γ Δ Ξ
+  -> (Δ' Ξ': Ctx T) × Ctx.ssplit Γ Δ' Ξ' × Ctx.wk Δ' Δ × Ctx.wk Ξ' Ξ
+  | nil => ⟨[], [], ssplit.nil, wk.nil, wk.nil⟩
+  | left v l Hl H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := left_decompose H;
+    ⟨v::Δ', Ξ', ssplit.left v HΓ, wk.cons v l Hl HΔ, HΞ⟩
+  | right v r Hl H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := left_decompose H;
+    ⟨Δ', v::Ξ', ssplit.right v HΓ, HΔ, wk.cons v r Hl HΞ⟩
+  | discard v Ha H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := left_decompose H;
+    ⟨v::Δ', Ξ', ssplit.left v HΓ, wk.discard v Ha HΔ, HΞ⟩
+  | dup v l r Hrel Hl Hr H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := left_decompose H;
+    ⟨v::Δ', v::Ξ', ssplit.dup v Hrel HΓ, wk.cons v l Hl HΔ, wk.cons v r Hr HΞ⟩
+
+def Ctx.split.right_decompose {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : Ctx.split Γ Δ Ξ
+  -> (Δ' Ξ': Ctx T) × Ctx.ssplit Γ Δ' Ξ' × Ctx.wk Δ' Δ × Ctx.wk Ξ' Ξ
+  | nil => ⟨[], [], ssplit.nil, wk.nil, wk.nil⟩
+  | left v l Hl H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
+    ⟨v::Δ', Ξ', ssplit.left v HΓ, wk.cons v l Hl HΔ, HΞ⟩
+  | right v r Hl H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
+    ⟨Δ', v::Ξ', ssplit.right v HΓ, HΔ, wk.cons v r Hl HΞ⟩
+  | discard v Ha H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
+    ⟨Δ', v::Ξ', ssplit.right v HΓ, HΔ, wk.discard v Ha HΞ⟩
+  | dup v l r Hrel Hl Hr H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
+    ⟨v::Δ', v::Ξ', ssplit.dup v Hrel HΓ, wk.cons v l Hl HΔ, wk.cons v r Hr HΞ⟩
 
 theorem Ctx.wk.length_decreasing {T} [HasLin T] {Γ Δ: Ctx T} (H: wk Γ Δ)
   : Δ.length ≤ Γ.length
@@ -164,40 +252,40 @@ instance Ctx.wk.instSubsingletonRefl {T} [HasLin T] {Γ: Ctx T}
 --TODO: subsingleton to nil --> nil is terminal object
 --TODO: subsingleton from nil
 
-def Ctx.wk.trans {T} [HasLin T] {Γ Δ Ξ: Ctx T}
+def Ctx.wk.comp {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Ξ -> Ctx.wk Γ Ξ
   | nil, nil => nil
   | cons _ _ Hl HΓ, cons _ _ Hl' HΓ' =>
-    cons _ _ (le_trans Hl' Hl) (trans HΓ HΓ')
+    cons _ _ (le_trans Hl' Hl) (comp HΓ HΓ')
   | cons _ _ Hl HΓ, discard _ Ha HΓ' =>
-    discard _ (Variable.le.aff Hl Ha) (trans HΓ HΓ')
+    discard _ (Variable.le.aff Hl Ha) (comp HΓ HΓ')
   | discard _ Ha HΓ, H =>
-    discard _ Ha (trans HΓ H)
+    discard _ Ha (comp HΓ H)
 
-def Ctx.wk.trans_refl {T} [HasLin T] {Γ Δ: Ctx T}
-  : (H: Ctx.wk Γ Δ) -> (R: Ctx.wk Δ Δ) -> H.trans R = H
+def Ctx.wk.comp_refl {T} [HasLin T] {Γ Δ: Ctx T}
+  : (H: Ctx.wk Γ Δ) -> (R: Ctx.wk Δ Δ) -> H.comp R = H
   | nil, nil => rfl
-  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (trans_refl HΓ HΓ')
-  | discard _ _ HΓ, HΓ' => congrArg _ (trans_refl HΓ HΓ')
+  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (comp_refl HΓ HΓ')
+  | discard _ _ HΓ, HΓ' => congrArg _ (comp_refl HΓ HΓ')
   | cons _ _ _ _, discard _ _ HΓ => HΓ.append_false.elim
 
-def Ctx.wk.refl_trans {T} [HasLin T] {Γ Δ: Ctx T}
-  : (R: Ctx.wk Γ Γ) -> (H: Ctx.wk Γ Δ) -> R.trans H = H
+def Ctx.wk.refl_comp {T} [HasLin T] {Γ Δ: Ctx T}
+  : (R: Ctx.wk Γ Γ) -> (H: Ctx.wk Γ Δ) -> R.comp H = H
   | nil, nil => rfl
-  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (refl_trans HΓ HΓ')
-  | cons _ _ _ HΓ, discard _ _ HΓ' => congrArg _ (refl_trans HΓ HΓ')
+  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (refl_comp HΓ HΓ')
+  | cons _ _ _ HΓ, discard _ _ HΓ' => congrArg _ (refl_comp HΓ HΓ')
   | discard _ _ HΓ, _ => HΓ.append_false.elim
 
-def Ctx.wk.trans_assoc {T} [HasLin T] {Γ Δ Ξ Θ: Ctx T}
+def Ctx.wk.comp_assoc {T} [HasLin T] {Γ Δ Ξ Θ: Ctx T}
   : (X: Ctx.wk Γ Δ)
   -> (Y: Ctx.wk Δ Ξ)
   -> (Z: Ctx.wk Ξ Θ)
-  -> (X.trans Y).trans Z = X.trans (Y.trans Z)
+  -> (X.comp Y).comp Z = X.comp (Y.comp Z)
   | nil, nil, nil => rfl
-  | cons _ _ _ X, cons _ _ _ Y, cons _ _ _ Z => congrArg _ (trans_assoc X Y Z)
-  | cons _ _ _ X, cons _ _ _ Y, discard _ _ Z => congrArg _ (trans_assoc X Y Z)
-  | cons _ _ _ X, discard _ _ Y, Z => congrArg _ (trans_assoc X Y Z)
-  | discard _ _ X, Y, Z => congrArg _ (trans_assoc X Y Z)
+  | cons _ _ _ X, cons _ _ _ Y, cons _ _ _ Z => congrArg _ (comp_assoc X Y Z)
+  | cons _ _ _ X, cons _ _ _ Y, discard _ _ Z => congrArg _ (comp_assoc X Y Z)
+  | cons _ _ _ X, discard _ _ Y, Z => congrArg _ (comp_assoc X Y Z)
+  | discard _ _ X, Y, Z => congrArg _ (comp_assoc X Y Z)
 
 def Ctx.wk.antisymm {T} [HasLin T] {Γ Δ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Γ -> Γ = Δ
@@ -242,7 +330,8 @@ inductive Term {T} [HasLin T]: Ctx T -> Variable T -> Type
 inductive Term.subst {T} [HasLin T]: Ctx T -> Ctx T -> Type
   | nil {Γ} (H: Ctx.wk Γ []): subst Γ []
   | cons {Θ ΘΓ Γ Θx x}
-    (s: Ctx.split Θ ΘΓ Θx)
-    (H: subst ΘΓ Γ)
+    (s: Ctx.ssplit Θ ΘΓ Θx)
+    (HΘΓ: subst ΘΓ Γ)
+    (HΘx: HasLin.lin Θx x.toTransparency)
     (t: Term Θx x)
     : subst Θ (x::Γ)
