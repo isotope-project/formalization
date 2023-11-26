@@ -3,3 +3,4 @@
 /lake-packages/*
 lake-manifest.json
 .vscode
+.lake

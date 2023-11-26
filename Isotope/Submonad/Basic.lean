@@ -129,7 +129,7 @@ instance Submonad.toLawfulMonad {m}
     S.members
     (λx => Subtype.ext (by simp [map_subtype]))
     (λx f => Subtype.ext (by simp [S.bind_def, S.pure_def]))
-    (λx f g =>  Subtype.ext (by simp [S.bind_def]))
+    (λx f g =>  Subtype.ext (by simp only [S.bind_def]; rw [bind_assoc]; rfl))
 
 theorem Submonad.bind_vals {m}
   [Monad m]
