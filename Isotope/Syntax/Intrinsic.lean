@@ -188,20 +188,16 @@ def Ctx.wk.refl_trans {T} [HasLin T] {Γ Δ: Ctx T}
   | cons _ _ _ HΓ, discard _ _ HΓ' => congrArg _ (refl_trans HΓ HΓ')
   | discard _ _ HΓ, _ => HΓ.append_false.elim
 
--- def Ctx.wk.trans_assoc {T} [HasLin T] {Γ Δ Ξ Θ: Ctx T}
---   : (X: Ctx.wk Γ Δ)
---   -> (Y: Ctx.wk Δ Ξ)
---   -> (Z: Ctx.wk Ξ Θ)
---   -> (X.trans Y).trans Z = X.trans (Y.trans Z)
---   | nil, Y, Z => by
---     have HY := Y.nil_nil
---     cases HY
---     have HZ := Z.nil_nil
---     cases HZ
---     cases Y
---     cases Z
---     rfl
---   | _, _, _ => sorry
+def Ctx.wk.trans_assoc {T} [HasLin T] {Γ Δ Ξ Θ: Ctx T}
+  : (X: Ctx.wk Γ Δ)
+  -> (Y: Ctx.wk Δ Ξ)
+  -> (Z: Ctx.wk Ξ Θ)
+  -> (X.trans Y).trans Z = X.trans (Y.trans Z)
+  | nil, nil, nil => rfl
+  | cons _ _ _ X, cons _ _ _ Y, cons _ _ _ Z => congrArg _ (trans_assoc X Y Z)
+  | cons _ _ _ X, cons _ _ _ Y, discard _ _ Z => congrArg _ (trans_assoc X Y Z)
+  | cons _ _ _ X, discard _ _ Y, Z => congrArg _ (trans_assoc X Y Z)
+  | discard _ _ X, Y, Z => congrArg _ (trans_assoc X Y Z)
 
 def Ctx.wk.antisymm {T} [HasLin T] {Γ Δ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Γ -> Γ = Δ
