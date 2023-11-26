@@ -118,6 +118,8 @@ theorem Ctx.split.right_length_decreasing {T} [HasLin T] {Γ Δ Ξ: Ctx T}
 
 def Ctx.wk {T} [HasLin T] (Γ Δ: Ctx T) := Ctx.split Γ Δ []
 
+def Ctx.var {T} [HasLin T] (Γ: Ctx T) (x: Variable T) := Ctx.wk Γ [x]
+
 @[match_pattern]
 def Ctx.wk.nil {T} [HasLin T]: @Ctx.wk T _ [] [] := Ctx.split.nil
 @[match_pattern]
@@ -199,3 +201,15 @@ instance Ctx.instHasLin {T} [HasLin T]: HasLin (Ctx T) where
 --   Ctx.split Γ Δ Ξ → Ctx.split Ξ Θ Φ → (Ψ: _) × Ctx.split Γ Ψ Φ × Ctx.split Ψ Δ Θ
 --   | H, nil => ⟨Δ, H, wk.refl Δ⟩
 --   | _, _ => sorry
+
+inductive Term {T} [HasLin T]: Ctx T -> Variable T -> Type
+  | var {Γ x} (v: Ctx.var Γ x): Term Γ x
+  -- TODO
+
+inductive Term.subst {T} [HasLin T]: Ctx T -> Ctx T -> Type
+  | nil {Γ} (H: Ctx.wk Γ []): subst Γ []
+  | cons {Θ ΘΓ Γ Θx x}
+    (s: Ctx.split Θ ΘΓ Θx)
+    (H: subst ΘΓ Γ)
+    (t: Term Θx x)
+    : subst Θ (x::Γ)
