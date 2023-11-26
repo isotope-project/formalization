@@ -41,6 +41,7 @@ theorem Transparency.le.aff {l r: Transparency}
 theorem Transparency.le.rel {l r: Transparency}
   : l ≤ r → l.rel → r.rel := And.right
 
+--TODO: add resource algebra to variables?
 structure Variable (T: Type u) extends Transparency where
   ty: Ty T
 
@@ -54,7 +55,6 @@ instance Variable.instPartialOrder {T}: PartialOrder (Variable T) where
   le_trans _ _ _  | ⟨He, Ht⟩, ⟨He', Ht'⟩ => ⟨He.trans He', le_trans Ht Ht'⟩
   le_antisymm x x' H H'
     := mk.injEq _ _ _ _ ▸ ⟨le_antisymm H.2 H'.2, H.1⟩
-
 
 theorem Variable.le.aff {T} [HasLin T] {l r: Variable T}
   : l ≤ r → HasLin.aff l → HasLin.aff r
@@ -131,9 +131,13 @@ def Ctx.wk.discard {T} [HasLin T] {Γ Δ: Ctx T}
   : (v: Variable T) -> (Ha: HasLin.aff v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) Δ
   := Ctx.split.discard
 
-def Ctx.wk.length_decreasing {T} [HasLin T] {Γ Δ: Ctx T} (H: wk Γ Δ)
+theorem Ctx.wk.length_decreasing {T} [HasLin T] {Γ Δ: Ctx T} (H: wk Γ Δ)
   : Δ.length ≤ Γ.length
   := Ctx.split.left_length_decreasing H
+
+theorem Ctx.wk.append_false {T} [HasLin T] {Γ: Ctx T} {A}
+  (H: wk Γ (A::Γ)): False
+  := have H := H.length_decreasing; by simp_arith at H
 
 def Ctx.wk.refl {T} [HasLin T]
   : (Γ: Ctx T) -> Ctx.wk Γ Γ
@@ -144,9 +148,18 @@ instance Ctx.wk.instInhabitedRefl {T} [HasLin T] {Γ: Ctx T}
   : Inhabited (Ctx.wk Γ Γ) where
   default := wk.refl Γ
 
+instance Ctx.wk.instSubsingletonRefl {T} [HasLin T] {Γ: Ctx T}
+  : Subsingleton (Ctx.wk Γ Γ) where
+  allEq := let rec allEq
+  : ∀ {Γ: Ctx T} (HΓ: Ctx.wk Γ Γ) (HΓ': Ctx.wk Γ Γ), HΓ = HΓ'
+  | [], nil, nil => rfl
+  | _, cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (allEq HΓ HΓ')
+  | _, discard _ _ HΓ, _ | _, _, discard _ _ HΓ => HΓ.append_false.elim
+  allEq
+
 def Ctx.wk.trans {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Ξ -> Ctx.wk Γ Ξ
-  | Ctx.split.nil, Ctx.split.nil => nil
+  | nil, nil => nil
   | cons _ _ Hl HΓ, cons _ _ Hl' HΓ' =>
     cons _ _ (le_trans Hl' Hl) (trans HΓ HΓ')
   | cons _ _ Hl HΓ, discard _ Ha HΓ' =>
@@ -154,16 +167,25 @@ def Ctx.wk.trans {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   | discard _ Ha HΓ, H =>
     discard _ Ha (trans HΓ H)
 
--- def Ctx.wk.trans_refl {T} [HasLin T] {Γ Δ: Ctx T}
---   : (H: Ctx.wk Γ Δ) -> (R: Ctx.wk Δ Δ) -> H.trans R = H
---   := sorry
+def Ctx.wk.trans_refl {T} [HasLin T] {Γ Δ: Ctx T}
+  : (H: Ctx.wk Γ Δ) -> (R: Ctx.wk Δ Δ) -> H.trans R = H
+  | nil, nil => rfl
+  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (trans_refl HΓ HΓ')
+  | discard _ _ HΓ, HΓ' => congrArg _ (trans_refl HΓ HΓ')
+  | cons _ _ _ _, discard _ _ HΓ => HΓ.append_false.elim
 
--- def Ctx.wk.refl_trans {T} [HasLin T] {Γ Δ: Ctx T}
---   : (R: Ctx.wk Γ Γ) -> (H: Ctx.wk Γ Δ) -> R.trans H = H
---   := sorry
+def Ctx.wk.refl_trans {T} [HasLin T] {Γ Δ: Ctx T}
+  : (R: Ctx.wk Γ Γ) -> (H: Ctx.wk Γ Δ) -> R.trans H = H
+  | nil, nil => rfl
+  | cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (refl_trans HΓ HΓ')
+  | cons _ _ _ HΓ, discard _ _ HΓ' => congrArg _ (refl_trans HΓ HΓ')
+  | discard _ _ HΓ, _ => HΓ.append_false.elim
 
--- instance Ctx.wk.instSubsingletonRefl {T} [HasLin T] {Γ: Ctx T}
---   : Subsingleton (Ctx.wk Γ Γ)
+-- def Ctx.wk.trans_assoc {T} [HasLin T] {Γ Δ Ξ Θ: Ctx T}
+--   : (X: Ctx.wk Γ Δ)
+--   -> (Y: Ctx.wk Δ Ξ)
+--   -> (Z: Ctx.wk Ξ Θ)
+--   -> (X.trans Y).trans Z = X.trans (Y.trans Z)
 --   := sorry
 
 def Ctx.wk.antisymm {T} [HasLin T] {Γ Δ: Ctx T}
