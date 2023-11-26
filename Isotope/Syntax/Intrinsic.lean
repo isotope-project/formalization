@@ -139,6 +139,10 @@ theorem Ctx.wk.append_false {T} [HasLin T] {Γ: Ctx T} {A}
   (H: wk Γ (A::Γ)): False
   := have H := H.length_decreasing; by simp_arith at H
 
+theorem Ctx.wk.nil_nil {T} [HasLin T] {Γ: Ctx T}
+  : wk [] Γ -> Γ = []
+  | nil => rfl
+
 def Ctx.wk.refl {T} [HasLin T]
   : (Γ: Ctx T) -> Ctx.wk Γ Γ
   | [] => Ctx.split.nil
@@ -156,6 +160,9 @@ instance Ctx.wk.instSubsingletonRefl {T} [HasLin T] {Γ: Ctx T}
   | _, cons _ _ _ HΓ, cons _ _ _ HΓ' => congrArg _ (allEq HΓ HΓ')
   | _, discard _ _ HΓ, _ | _, _, discard _ _ HΓ => HΓ.append_false.elim
   allEq
+
+--TODO: subsingleton to nil --> nil is terminal object
+--TODO: subsingleton from nil
 
 def Ctx.wk.trans {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Ξ -> Ctx.wk Γ Ξ
@@ -186,7 +193,15 @@ def Ctx.wk.refl_trans {T} [HasLin T] {Γ Δ: Ctx T}
 --   -> (Y: Ctx.wk Δ Ξ)
 --   -> (Z: Ctx.wk Ξ Θ)
 --   -> (X.trans Y).trans Z = X.trans (Y.trans Z)
---   := sorry
+--   | nil, Y, Z => by
+--     have HY := Y.nil_nil
+--     cases HY
+--     have HZ := Z.nil_nil
+--     cases HZ
+--     cases Y
+--     cases Z
+--     rfl
+--   | _, _, _ => sorry
 
 def Ctx.wk.antisymm {T} [HasLin T] {Γ Δ: Ctx T}
   : Ctx.wk Γ Δ -> Ctx.wk Δ Γ -> Γ = Δ
