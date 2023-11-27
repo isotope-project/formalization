@@ -219,6 +219,58 @@ def Ctx.split.right_decompose {T} [HasLin T] {Γ Δ Ξ: Ctx T}
   | dup v l r Hrel Hl Hr H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
     ⟨v::Δ', v::Ξ', ssplit.dup v Hrel HΓ, wk.cons v l Hl HΔ, wk.cons v r Hr HΞ⟩
 
+def Ctx.ssplit.distribute_left {T} [HasLin T] {Γ Γ' Δ Ξ: Ctx T}
+  : Ctx.wk Γ' Γ -> Ctx.ssplit Γ Δ Ξ
+    -> (Δ' Ξ': Ctx T) × Ctx.ssplit Γ' Δ' Ξ' × Ctx.wk Δ' Δ × Ctx.wk Ξ' Ξ
+  | wk.nil, nil => ⟨[], [], ssplit.nil, wk.nil, wk.nil⟩
+  | wk.cons _ _ Hl W, left _ S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_left W S;
+    ⟨_, _,
+      ssplit.left _ HΓ,
+      wk.cons _ _ Hl HΔ,
+      HΞ⟩
+  | wk.cons _ _ Hl W, right _ S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_left W S;
+    ⟨_, _,
+      ssplit.right _ HΓ,
+      HΔ,
+      wk.cons _ _ Hl HΞ⟩
+  | wk.cons _ _ Hl W, dup _ Hrel S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_left W S;
+    ⟨_, _,
+      ssplit.dup _ (Variable.le.rel Hl Hrel) HΓ,
+      wk.cons _ _ Hl HΔ,
+      wk.cons _ _ Hl HΞ⟩
+  | wk.discard v Ha W, S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_left W S;
+    ⟨_, _, left _ HΓ, wk.discard v Ha HΔ, HΞ⟩
+
+def Ctx.ssplit.distribute_right {T} [HasLin T] {Γ Γ' Δ Ξ: Ctx T}
+  : Ctx.wk Γ' Γ -> Ctx.ssplit Γ Δ Ξ
+    -> (Δ' Ξ': Ctx T) × Ctx.ssplit Γ' Δ' Ξ' × Ctx.wk Δ' Δ × Ctx.wk Ξ' Ξ
+  | wk.nil, nil => ⟨[], [], ssplit.nil, wk.nil, wk.nil⟩
+  | wk.cons _ _ Hl W, left _ S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_right W S;
+    ⟨_, _,
+      ssplit.left _ HΓ,
+      wk.cons _ _ Hl HΔ,
+      HΞ⟩
+  | wk.cons _ _ Hl W, right _ S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_right W S;
+    ⟨_, _,
+      ssplit.right _ HΓ,
+      HΔ,
+      wk.cons _ _ Hl HΞ⟩
+  | wk.cons _ _ Hl W, dup _ Hrel S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_right W S;
+    ⟨_, _,
+      ssplit.dup _ (Variable.le.rel Hl Hrel) HΓ,
+      wk.cons _ _ Hl HΔ,
+      wk.cons _ _ Hl HΞ⟩
+  | wk.discard v Ha W, S =>
+    let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_right W S;
+    ⟨_, _, right _ HΓ, HΔ, wk.discard v Ha HΞ⟩
+
 theorem Ctx.wk.length_decreasing {T} [HasLin T] {Γ Δ: Ctx T} (H: wk Γ Δ)
   : Δ.length ≤ Γ.length
   := Ctx.split.left_length_decreasing H
