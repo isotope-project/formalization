@@ -1,6 +1,6 @@
 import Isotope.Syntax.Intrinsic.Basic
 
-abbrev Ctx (T: Type u) := List (Variable T)
+abbrev Ctx (T: Type u) := List (Var T)
 
 instance Ctx.instHasLin {T: Type u} [HasLin T]: HasLin (Ctx T) where
   aff Γ := Γ.all HasLin.aff
@@ -111,17 +111,17 @@ theorem Ctx.ssplit.right_length_decreasing {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx
 
 def Ctx.wk {T: Type u} [HasLin T] (Γ Δ: Ctx T) := Ctx.split Γ Δ []
 
-def Ctx.var {T: Type u} [HasLin T] (Γ: Ctx T) (x: Variable T) := Ctx.wk Γ [x]
+def Ctx.var {T: Type u} [HasLin T] (Γ: Ctx T) (x: Var T) := Ctx.wk Γ [x]
 
 @[match_pattern]
 def Ctx.wk.nil {T: Type u} [HasLin T]: @Ctx.wk T _ [] [] := Ctx.split.nil
 @[match_pattern]
 def Ctx.wk.cons {T: Type u} [HasLin T] {Γ Δ: Ctx T}
-  : (v l: Variable T) -> (Hl: l ≤ v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) (l::Δ)
+  : (v l: Var T) -> (Hl: l ≤ v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) (l::Δ)
   := Ctx.split.left
 @[match_pattern]
 def Ctx.wk.discard {T: Type u} [HasLin T] {Γ Δ: Ctx T}
-  : (v: Variable T) -> (Ha: HasLin.aff v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) Δ
+  : (v: Var T) -> (Ha: HasLin.aff v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) Δ
   := Ctx.split.discard
 
 def Ctx.split.left_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
@@ -169,7 +169,7 @@ def Ctx.ssplit.distribute_left {T: Type u} [HasLin T] {Γ Γ' Δ Ξ: Ctx T}
   | wk.cons _ _ Hl W, dup _ Hrel S =>
     let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_left W S;
     ⟨_, _,
-      ssplit.dup _ (Variable.le.rel Hl Hrel) HΓ,
+      ssplit.dup _ (Var.le.rel Hl Hrel) HΓ,
       wk.cons _ _ Hl HΔ,
       wk.cons _ _ Hl HΞ⟩
   | wk.discard v Ha W, S =>
@@ -195,7 +195,7 @@ def Ctx.ssplit.distribute_right {T: Type u} [HasLin T] {Γ Γ' Δ Ξ: Ctx T}
   | wk.cons _ _ Hl W, dup _ Hrel S =>
     let ⟨_, _, HΓ, HΔ, HΞ⟩ := distribute_right W S;
     ⟨_, _,
-      ssplit.dup _ (Variable.le.rel Hl Hrel) HΓ,
+      ssplit.dup _ (Var.le.rel Hl Hrel) HΓ,
       wk.cons _ _ Hl HΔ,
       wk.cons _ _ Hl HΞ⟩
   | wk.discard v Ha W, S =>
@@ -241,7 +241,7 @@ def Ctx.wk.comp {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
   | cons _ _ Hl HΓ, cons _ _ Hl' HΓ' =>
     cons _ _ (le_trans Hl' Hl) (comp HΓ HΓ')
   | cons _ _ Hl HΓ, discard _ Ha HΓ' =>
-    discard _ (Variable.le.aff Hl Ha) (comp HΓ HΓ')
+    discard _ (Var.le.aff Hl Ha) (comp HΓ HΓ')
   | discard _ Ha HΓ, H =>
     discard _ Ha (comp HΓ H)
 

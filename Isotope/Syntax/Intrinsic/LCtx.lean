@@ -2,7 +2,7 @@ import Isotope.Syntax.Intrinsic.Ctx
 
 structure Label (T: Type u) where
   live: Ctx T
-  param: Variable T
+  param: Var T
 
 structure Label.wk {T: Type u} [HasLin T] (l k: Label T) where
   live: l.live.wk k.live
