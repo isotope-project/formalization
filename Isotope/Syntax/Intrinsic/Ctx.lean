@@ -1,4 +1,4 @@
-import Isotope.Syntax.Intrinsic.Basic
+import Isotope.Syntax.Intrinsic.Ty
 
 abbrev Ctx (T: Type u) := List (Var T)
 
