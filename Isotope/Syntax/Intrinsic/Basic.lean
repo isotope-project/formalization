@@ -21,8 +21,17 @@ structure InstructionSet.inst {F: Type u} {T: Type v}
   (f: F) (p: Bool) (q: Transparency) (A B: Ty T) where
   well_typed: inst_ty f A B
   inst_aff: (q.aff → inst_aff f A B)
-  insrt_rel: (q.rel → inst_rel f A B)
+  inst_rel: (q.rel → inst_rel f A B)
   inst_cen: (p → inst_cen f A B)
+
+def InstructionSet.inst.upgrade {F: Type u} {T: Type v}
+  [HasLin T] [InstructionSet F T]
+  {f: F} {A B: Ty T} {p q p' q'} (Hp: p ≥ p') (Hq: q ≥ q')
+  (H: InstructionSet.inst f p q A B ): InstructionSet.inst f p' q' A B where
+  well_typed := H.well_typed
+  inst_aff := λ Haff => H.inst_aff (Hq.1 Haff)
+  inst_rel := λ Hrel => H.inst_rel (Hq.2 Hrel)
+  inst_cen := λ Hcen => H.inst_cen (Hp Hcen)
 
 open InstructionSet
 
@@ -31,10 +40,10 @@ inductive Term {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   | var {Γ A q} (p) (v: Γ.var ⟨q, A⟩): Term F Γ p A q
   | app {Γ} {f: F} {p A B} (Hf: inst f p q A B)
     : Term F Γ p A q -> Term F Γ p B q
-  | pair {Γ Δ Ξ A B q}: Γ.ssplit Δ Ξ
+  | pair {Γ Δ Ξ A B q} (p): Γ.ssplit Δ Ξ
     -> Term F Δ true A q
     -> Term F Ξ true B q
-    -> Term F Γ true (Ty.tensor A B) q
+    -> Term F Γ p (Ty.tensor A B) q
   | unit (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.unit q
   | tt (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.bool q
   | ff (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.bool q

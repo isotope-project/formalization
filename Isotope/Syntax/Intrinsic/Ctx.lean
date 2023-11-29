@@ -305,3 +305,7 @@ def Ctx.wk.equiv_right {T: Type u} [HasLin T] {Γ Δ: Ctx T}
 --   Ctx.split Γ Δ Ξ → Ctx.split Ξ Θ Φ → (Ψ: _) × Ctx.split Γ Ψ Φ × Ctx.split Ψ Δ Θ
 --   | H, nil => ⟨Δ, H, wk.refl Δ⟩
 --   | _, _ => sorry
+
+def Ctx.var.upgrade {T: Type u} [HasLin T] {Γ: Ctx T} {v v': Var T}
+  (H: Γ.var v) (H': v ≥ v'): Γ.var v'
+  := Ctx.wk.comp H (Ctx.wk.cons v v' H' (Ctx.wk.nil))
