@@ -119,6 +119,10 @@ def Ctx.wk.nil {T: Type u} [HasLin T]: @Ctx.wk T _ [] [] := Ctx.split.nil
 def Ctx.wk.cons {T: Type u} [HasLin T] {Γ Δ: Ctx T}
   : (v l: Var T) -> (Hl: l ≤ v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) (l::Δ)
   := Ctx.split.left
+  @[match_pattern]
+def Ctx.wk.scons {T: Type u} [HasLin T] {Γ Δ: Ctx T}
+  (v: Var T): Ctx.wk Γ Δ -> Ctx.wk (v::Γ) (v::Δ)
+  := Ctx.split.left v v (le_refl v)
 @[match_pattern]
 def Ctx.wk.discard {T: Type u} [HasLin T] {Γ Δ: Ctx T}
   : (v: Var T) -> (Ha: HasLin.aff v) -> Ctx.wk Γ Δ -> Ctx.wk (v::Γ) Δ

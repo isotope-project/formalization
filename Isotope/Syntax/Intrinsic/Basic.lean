@@ -52,7 +52,7 @@ inductive NCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   | br {Γ Δ Ξ A q L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ true A q ->
-    LCtx.join [⟨Δ, ⟨q, A⟩⟩] L ->
+    L.label ⟨Δ, ⟨q, A⟩⟩ ->
     NCfg F (GCtx.df Γ) L
   | ite {Γ Δ Ξ L}:
     Γ.ssplit Δ Ξ ->
@@ -83,15 +83,24 @@ inductive NCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
 
 def Block {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   (Γ: Ctx T) (L: LCtx T) := NCfg F (GCtx.df Γ) L
+
+namespace Block
+export NCfg (br ite let1 let2 cfg)
+end Block
+
 def Cfg {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   (L: LCtx T) (K: LCtx T) := NCfg F (GCtx.cf L) K
+
+namespace Cfg
+export NCfg (cfg_id cfg_def)
+end Cfg
 
 inductive GBlock {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   : Ctx T -> LCtx T -> Bool -> Type u
   | br {Γ Δ Ξ A q L} (t):
     Γ.ssplit Δ Ξ ->
     Term F Ξ true A q ->
-    LCtx.join [⟨Δ, ⟨q, A⟩⟩] L ->
+    L.label ⟨Δ, ⟨q, A⟩⟩ ->
     GBlock F Γ L t
   | ite {Γ Δ Ξ L} (t):
     Γ.ssplit Δ Ξ ->

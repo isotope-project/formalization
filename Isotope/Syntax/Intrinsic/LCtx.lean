@@ -41,4 +41,10 @@ def LCtx.join.comp {T: Type u} [HasLin T] {L K M: LCtx T}
   | unreached _ j, cons H k => unreached _ (comp j k)
   | cons H j, cons H' k => cons (Label.wk.comp H H') (comp j k)
 
---TODO: LCtx.comp_id, LCtx.id_comp, LCtx.comp_assoc ==> LCtx is a category
+def LCtx.label {T: Type u} [HasLin T] (L: LCtx T) (l: Label T): Type u
+  := LCtx.join [l] L
+
+def LCtx.label.wk {T: Type u} [HasLin T] {L: LCtx T} {l k: Label T}
+  (W: l.wk k): L.label k -> L.label l
+  | join.unreached l' j => join.unreached l' (wk W j)
+  | join.cons W' j => join.cons (W.comp W') j
