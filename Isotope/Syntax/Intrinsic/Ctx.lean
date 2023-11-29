@@ -154,6 +154,7 @@ def Ctx.split.right_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
   | dup v l r Hrel Hl Hr H => let ⟨Δ', Ξ', HΓ, HΔ, HΞ⟩ := right_decompose H;
     ⟨v::Δ', v::Ξ', ssplit.dup v Hrel HΓ, wk.cons v l Hl HΔ, wk.cons v r Hr HΞ⟩
 
+--TODO: adjust types here
 def Ctx.ssplit.distribute_left {T: Type u} [HasLin T] {Γ Γ' Δ Ξ: Ctx T}
   : Ctx.wk Γ' Γ -> Ctx.ssplit Γ Δ Ξ
     -> (Δ' Ξ': Ctx T) × Ctx.ssplit Γ' Δ' Ξ' × Ctx.wk Δ' Δ × Ctx.wk Ξ' Ξ

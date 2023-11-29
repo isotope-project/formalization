@@ -172,12 +172,3 @@ inductive SSAFrag {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   : GCtx T -> LCtx T -> Type u
   | ssa {Γ L}: SSA F Γ L -> SSAFrag F (GCtx.df Γ) L
   | cfg {L K}: SCfg F L K -> SSAFrag F (GCtx.cf L) K
-
--- inductive Term.subst {T} [HasLin T]: Ctx T -> Ctx T -> Type
---   | nil {Γ} (H: Ctx.wk Γ []): subst Γ []
---   | cons {Θ ΘΓ Γ Θx x}
---     (s: Ctx.ssplit Θ ΘΓ Θx)
---     (HΘΓ: subst ΘΓ Γ)
---     (HΘx: HasLin.lin Θx x.toTransparency)
---     (t: Term Θx x)
---     : subst Θ (x::Γ)
