@@ -56,6 +56,21 @@ inductive Term {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
     -> Term F (⟨⟨true, true⟩, A⟩::⟨⟨true, true⟩, B⟩::Δ) p C q
     -> Term F Γ p C q
 
+def Term.upgrade {T: Type u} [HasLin T] {F: Type u} [InstructionSet F T]
+  {Γ: Ctx T} {c A q c' q'} (Hp: c ≥ c') (Hq: q ≥ q')
+  : Term F Γ c A q → Term F Γ c' A q'
+  | var _ X => var _ (X.upgrade ⟨rfl, Hq⟩)
+  | app Hf a => app (Hf.upgrade Hp Hq) (upgrade Hp Hq a)
+  | pair _ S a b =>
+    pair _ S (upgrade (le_refl _) Hq a) (upgrade (le_refl _) Hq b)
+  | unit _ D _ => unit _ D _
+  | tt _ D _ => tt _ D _
+  | ff _ D _ => ff _ D _
+  | let1 _ S a e =>
+    let1 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
+  | let2 p S a e =>
+    let2 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
+
 inductive NCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   : GCtx T -> LCtx T -> Type u
   | br {Γ Δ Ξ A q L}:
@@ -131,6 +146,9 @@ inductive GBlock {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
 def BBlock {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   (Γ: Ctx T) (L: LCtx T) := GBlock F Γ L false
 
+def Terminator {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
+  (Γ: Ctx T) (L: LCtx T) := GBlock F Γ L true
+
 inductive SCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   : LCtx T -> LCtx T -> Type u
   | cfg_id (L):
@@ -139,6 +157,21 @@ inductive SCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
     SCfg F (⟨Γ, ⟨q, A⟩⟩::L) K ->
     BBlock F Γ K ->
     SCfg F L K
+
+-- inductive SSAFrag {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
+--   : GCtx T -> LCtx T -> Type u
+--   | bb {Γ L}: BBlock F Γ L -> SSAFrag F (GCtx.df Γ) L
+--   | cfg {L K}: SCfg F L K -> SSAFrag F (GCtx.cf L) K
+
+structure SSA {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
+  (Γ: Ctx T) (K: LCtx T) where
+  entry: BBlock F Γ L
+  cfg: SCfg F L K
+
+inductive SSAFrag {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
+  : GCtx T -> LCtx T -> Type u
+  | ssa {Γ L}: SSA F Γ L -> SSAFrag F (GCtx.df Γ) L
+  | cfg {L K}: SCfg F L K -> SSAFrag F (GCtx.cf L) K
 
 -- inductive Term.subst {T} [HasLin T]: Ctx T -> Ctx T -> Type
 --   | nil {Γ} (H: Ctx.wk Γ []): subst Γ []
