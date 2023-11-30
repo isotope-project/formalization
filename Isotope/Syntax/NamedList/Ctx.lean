@@ -1,5 +1,42 @@
 import Isotope.Syntax.Ty
 
+namespace NamedList
+
+structure Var (T: Type u) extends Transparency where
+  name: String
+  ty: T
+
+instance Var.instHasLin {T} [HasLin T]: HasLin (Var T) where
+  aff v := v.aff && HasLin.aff v.ty
+  rel v := v.rel && HasLin.rel v.ty
+
+instance Var.instPartialOrder {T}: PartialOrder (Var T) where
+  le l r := l.name = r.name ∧ l.ty = r.ty ∧ l.toTransparency ≤ r.toTransparency
+  le_refl := by simp [le_refl]
+  le_trans _ _ _
+    | ⟨Hn, HA, Ht⟩, ⟨Hn', HA', Ht'⟩
+    => ⟨Hn.trans Hn', HA.trans HA', le_trans Ht Ht'⟩
+  le_antisymm x x' H H'
+    := mk.injEq _ _ _ _ _ _ ▸ ⟨le_antisymm H.2.2 H'.2.2, H.1, H.2.1⟩
+
+theorem Var.le.aff {T} [HasLin T] {l r: Var T}
+  : l ≤ r → HasLin.aff l → HasLin.aff r
+  | ⟨He, Ht⟩ => by
+    simp only [HasLin.aff, He, Bool.and_eq_true, and_imp]
+    intro H H';
+    exact ⟨Ht.2.1 H, Ht.1 ▸ H'⟩
+
+theorem Var.le.rel {T} [HasLin T] {l r: Var T}
+  : l ≤ r → HasLin.rel l → HasLin.rel r
+  | ⟨He, Ht⟩ => by
+    simp only [HasLin.rel, He, Bool.and_eq_true, and_imp]
+    intro H H';
+    exact ⟨Ht.2.2 H, Ht.1 ▸ H'⟩
+
+--TODO: add context well-formedness condition? (no repeated names)
+--TODO: contexts as finite functions Name -> Var? could be !FUN!
+--Can be equipped with a separate "domain"?
+--In this case can define separation-style judgements on domains...
 abbrev Ctx (T: Type u) := List (Var T)
 
 instance Ctx.instHasLin {T: Type u} [HasLin T]: HasLin (Ctx T) where

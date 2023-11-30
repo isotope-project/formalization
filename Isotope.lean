@@ -15,4 +15,4 @@ import Isotope.Utils.Wk
 import Isotope.Trace.Basic
 import Isotope.ResourceAlgebra
 import Isotope.Syntax.Untyped
-import Isotope.Syntax.Intrinsic
+import Isotope.Syntax.Nameless

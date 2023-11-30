@@ -1,4 +1,6 @@
-import Isotope.Syntax.Intrinsic.Ctx
+import Isotope.Syntax.Nameless.Ctx
+
+namespace Nameless
 
 structure Label (T: Type u) where
   live: Ctx T

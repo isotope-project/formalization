@@ -1,4 +1,6 @@
-import Isotope.Syntax.Intrinsic.LCtx
+import Isotope.Syntax.Nameless.LCtx
+
+namespace Nameless
 
 inductive GCtx (T: Type u) [HasLin T]: Type u
   | df (Γ: Ctx T)

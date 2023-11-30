@@ -1,4 +1,6 @@
-import Isotope.Syntax.Intrinsic.Basic
+import Isotope.Syntax.Nameless.Basic
+
+namespace Nameless
 
 def Term.wk {T: Type u} [HasLin T] {F: Type u} [InstructionSet F T]
   {Γ Δ: Ctx T} {c A q} (W: Γ.wk Δ)

@@ -1,5 +1,7 @@
-import Isotope.Syntax.Intrinsic.Basic
-import Isotope.Syntax.Intrinsic.Wk
+import Isotope.Syntax.Nameless.Basic
+import Isotope.Syntax.Nameless.Wk
+
+namespace Nameless
 
 inductive Ctx.subst {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   : Ctx T -> Ctx T -> Type u
