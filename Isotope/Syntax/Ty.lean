@@ -47,3 +47,29 @@ theorem Transparency.le.aff {l r: Transparency}
 
 theorem Transparency.le.rel {l r: Transparency}
   : l ≤ r → l.rel → r.rel := And.right
+
+class InstructionSet (F: Type u) (T: Type v)
+  where
+  --TODO: enforce instructions only having a single type?
+  -- Could prove results for untyped syntax this way...
+  inst_ty: F -> Ty T -> Ty T -> Prop
+  inst_aff: F -> Ty T -> Ty T -> Prop
+  inst_rel: F -> Ty T -> Ty T -> Prop
+  inst_cen: F -> Ty T -> Ty T -> Prop
+
+structure InstructionSet.inst {F: Type u} {T: Type v}
+  [HasLin T] [InstructionSet F T]
+  (f: F) (p: Bool) (q: Transparency) (A B: Ty T) where
+  well_typed: inst_ty f A B
+  inst_aff: (q.aff → inst_aff f A B)
+  inst_rel: (q.rel → inst_rel f A B)
+  inst_cen: (p → inst_cen f A B)
+
+def InstructionSet.inst.upgrade {F: Type u} {T: Type v}
+  [HasLin T] [InstructionSet F T]
+  {f: F} {A B: Ty T} {p q p' q'} (Hp: p ≥ p') (Hq: q ≥ q')
+  (H: InstructionSet.inst f p q A B ): InstructionSet.inst f p' q' A B where
+  well_typed := H.well_typed
+  inst_aff := λ Haff => H.inst_aff (Hq.1 Haff)
+  inst_rel := λ Hrel => H.inst_rel (Hq.2 Hrel)
+  inst_cen := λ Hcen => H.inst_cen (Hp Hcen)

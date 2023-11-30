@@ -1,5 +1,7 @@
 import Isotope.Syntax.Nameless.LCtx
 
+open InstructionSet
+
 namespace Nameless
 
 inductive GCtx (T: Type u) [HasLin T]: Type u
@@ -9,32 +11,6 @@ inductive GCtx (T: Type u) [HasLin T]: Type u
 inductive Result (T: Type u) [HasLin T]: Type u
   | term (x: Var T)
   | label (L: LCtx T)
-
-class InstructionSet (F: Type u) (T: Type v)
-  where
-  inst_ty: F -> Ty T -> Ty T -> Prop
-  inst_aff: F -> Ty T -> Ty T -> Prop
-  inst_rel: F -> Ty T -> Ty T -> Prop
-  inst_cen: F -> Ty T -> Ty T -> Prop
-
-structure InstructionSet.inst {F: Type u} {T: Type v}
-  [HasLin T] [InstructionSet F T]
-  (f: F) (p: Bool) (q: Transparency) (A B: Ty T) where
-  well_typed: inst_ty f A B
-  inst_aff: (q.aff → inst_aff f A B)
-  inst_rel: (q.rel → inst_rel f A B)
-  inst_cen: (p → inst_cen f A B)
-
-def InstructionSet.inst.upgrade {F: Type u} {T: Type v}
-  [HasLin T] [InstructionSet F T]
-  {f: F} {A B: Ty T} {p q p' q'} (Hp: p ≥ p') (Hq: q ≥ q')
-  (H: InstructionSet.inst f p q A B ): InstructionSet.inst f p' q' A B where
-  well_typed := H.well_typed
-  inst_aff := λ Haff => H.inst_aff (Hq.1 Haff)
-  inst_rel := λ Hrel => H.inst_rel (Hq.2 Hrel)
-  inst_cen := λ Hcen => H.inst_cen (Hp Hcen)
-
-open InstructionSet
 
 inductive Term {T: Type u} [HasLin T] (F: Type u) [InstructionSet F T]
   : Ctx T -> Bool -> Ty T -> Transparency -> Type u
