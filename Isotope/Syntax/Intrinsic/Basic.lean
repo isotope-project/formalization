@@ -15,7 +15,6 @@ class InstructionSet (F: Type u) (T: Type v)
   inst_rel: F -> Ty T -> Ty T -> Prop
   inst_cen: F -> Ty T -> Ty T -> Prop
 
-
 structure InstructionSet.inst {F: Type u} {T: Type v}
   [HasLin T] [InstructionSet F T]
   (f: F) (p: Bool) (q: Transparency) (A B: Ty T) where
