@@ -39,9 +39,9 @@ theorem Var.le.rel {T} [HasLin T] {l r: Var T}
 --In this case can define separation-style judgements on domains...
 abbrev Ctx (T: Type u) := List (Var T)
 
-inductive Ctx.has_name {T: Type u}: Ctx T -> String -> Prop
-  | head (q n A) (Γ: Ctx T): Ctx.has_name (⟨q, n, A⟩::Γ) n
-  | tail v (Γ: Ctx T) (m: String): Ctx.has_name Γ m -> Ctx.has_name (v::Γ) m
+inductive Ctx.name {T: Type u}: Ctx T -> String -> Prop
+  | head (q n A) (Γ: Ctx T): Ctx.name (⟨q, n, A⟩::Γ) n
+  | tail v (Γ: Ctx T) (m: String): Ctx.name Γ m -> Ctx.name (v::Γ) m
 
 instance Ctx.instHasLin {T: Type u} [HasLin T]: HasLin (Ctx T) where
   aff Γ := Γ.all HasLin.aff
@@ -195,7 +195,7 @@ def Ctx.var.shead {T: Type u} [HasLin T] {Γ: Ctx T}
   := Ctx.wk.scons v W
 @[match_pattern]
 def Ctx.var.tail {T: Type u} [HasLin T] {Γ: Ctx T}
-  {v a: Var T} (W: Γ.var v) (Ha: HasLin.aff a): Ctx.var (a::Γ) v
+  {v a: Var T} (Ha: HasLin.aff a) (W: Γ.var v): Ctx.var (a::Γ) v
   := Ctx.wk.discard Ha W
 
 def Ctx.split.left_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
