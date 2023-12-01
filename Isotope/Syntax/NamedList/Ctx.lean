@@ -41,7 +41,7 @@ abbrev Ctx (T: Type u) := List (Var T)
 
 inductive Ctx.name {T: Type u}: Ctx T -> String -> Prop
   | head (q n A) (Γ: Ctx T): Ctx.name (⟨q, n, A⟩::Γ) n
-  | tail v (Γ: Ctx T) (m: String): Ctx.name Γ m -> Ctx.name (v::Γ) m
+  | tail {m Γ} v: Ctx.name Γ m -> Ctx.name (v::Γ) m
 
 instance Ctx.instHasLin {T: Type u} [HasLin T]: HasLin (Ctx T) where
   aff Γ := Γ.all HasLin.aff
@@ -197,6 +197,11 @@ def Ctx.var.shead {T: Type u} [HasLin T] {Γ: Ctx T}
 def Ctx.var.tail {T: Type u} [HasLin T] {Γ: Ctx T}
   {v a: Var T} (Ha: HasLin.aff a) (W: Γ.var v): Ctx.var (a::Γ) v
   := Ctx.wk.discard Ha W
+
+theorem Ctx.var.name {T: Type u} [HasLin T] {Γ: Ctx T} {v}
+  : Γ.var v -> Γ.name v.name
+  | head ⟨H, _, _⟩ _ => H ▸ name.head _ _ _ _
+  | tail _ W => name.tail _ (var.name W)
 
 def Ctx.split.left_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
   : Ctx.split Γ Δ Ξ
