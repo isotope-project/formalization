@@ -33,3 +33,19 @@ inductive Term {N: Type u} {T: Type v} [HasLin T]
     -> Term F Ξ true (Ty.tensor A B) q
     -> Term F (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ) p C q
     -> Term F Γ p C q
+
+def Term.upgrade {N: Type u} {T: Type v} [HasLin T]
+  {F: Type w} [InstructionSet F T]
+  {Γ: Ctx N T} {c A q c' q'} (Hp: c ≥ c') (Hq: q ≥ q')
+  : Term F Γ c A q → Term F Γ c' A q'
+  | var _ X => var _ (X.upgrade ⟨rfl, rfl, Hq⟩)
+  | app Hf a => app (Hf.upgrade Hp Hq) (upgrade Hp Hq a)
+  | pair _ S a b =>
+    pair _ S (upgrade (le_refl _) Hq a) (upgrade (le_refl _) Hq b)
+  | unit _ D _ => unit _ D _
+  | tt _ D _ => tt _ D _
+  | ff _ D _ => ff _ D _
+  | let1 _ S a e =>
+    let1 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
+  | let2 p S a e =>
+    let2 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
