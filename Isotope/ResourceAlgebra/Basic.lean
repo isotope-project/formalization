@@ -1,6 +1,7 @@
 import Mathlib.Algebra.Order.Monoid.Defs
 import Mathlib.Init.Order.Defs
 
+--TODO: class for binary validity relation?
 class ResourceAlgebra (T: Type u) extends
   OrderedAddCommMonoid T,
   One T
@@ -36,180 +37,41 @@ def ResourceAlgebra.valid_assoc' {T: Type u} [ResourceAlgebra T]
     apply valid_symm
     assumption
 
-inductive ResState
+--TODO: subalgebra definition; induces partial order
+--TODO: affine subalgebra (strip validity)
+--TODO: relevant subalgebra (strip order)
+--TODO: linear subalgebra
+--TODO: affine/relevant/linear wrappers
+
+inductive VarState
   | ghost
   | value
-  | invalid
 
-inductive ResState.valid: ResState -> Prop
-  | ghost: ResState.valid ghost
-  | value: ResState.valid value
+inductive VarState.le: VarState -> VarState -> Prop
+  | ghost: ∀ x, le ghost x
+  | value: VarState.le value value
 
-inductive ResState.le: ResState -> ResState -> Prop
-  | ghost: ∀ x, ResState.le ghost x
-  | value: ResState.le value value
-  | invalid: ∀ x, ResState.le x invalid
-
-instance ResState.instPartialOrder: PartialOrder ResState where
-  le := ResState.le
+instance VarState.instPartialOrder: PartialOrder VarState where
+  le := VarState.le
   le_refl a := by cases a <;> constructor
   le_trans a b c Hab Hbc := by cases Hab <;> cases Hbc <;> constructor
   le_antisymm a b Hab Hba := by cases Hab <;> cases Hba <;> rfl
 
-instance ResState.instZero: Zero ResState where
+instance VarState.instZero: Zero VarState where
   zero := ghost
-
-instance ResState.instOne: One ResState where
+instance VarState.instOne: One VarState where
   one := value
-
--- def IntRes := ResState
-
--- namespace IntRes
-
--- export ResState (
---   ghost value invalid
---   valid valid.value valid.ghost
---   le le.ghost le.value le.invalid)
-
--- instance instPartialOrder: PartialOrder IntRes := ResState.instPartialOrder
--- instance instZero: Zero IntRes := ResState.instZero
--- instance instOne: One IntRes := ResState.instOne
--- instance instOrderedAddCommMonoid: OrderedAddCommMonoid IntRes where
---   add
---   | ghost, x | x, ghost => x
---   | invalid, _ | _, invalid => invalid
---   | value, value => value
---   add_assoc := by intro a b c; cases a <;> cases b <;> cases c <;> rfl
---   add_comm := by intro a b; cases a <;> cases b <;> rfl
---   zero_add := by intro a; cases a <;> rfl
---   add_zero := by intro a; cases a <;> rfl
---   add_le_add_left a b Hab c
---     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
-
--- instance instResourceAlgebra: ResourceAlgebra IntRes where
---   valid := valid
---   valid_one := ResState.valid.value
---   valid_zero := ResState.valid.ghost
---   valid_add_left
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   valid_add_right
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   zero_ne_one := by simp
-
--- end IntRes
-
--- def AffRes := ResState
-
--- namespace AffRes
-
--- export ResState (
---   ghost value invalid
---   valid valid.value valid.ghost
---   le le.ghost le.value le.invalid)
-
--- instance instPartialOrder: PartialOrder AffRes := ResState.instPartialOrder
--- instance instZero: Zero AffRes := ResState.instZero
--- instance instOne: One AffRes := ResState.instOne
--- instance instOrderedAddCommMonoid: OrderedAddCommMonoid AffRes where
---   add
---   | ghost, x | x, ghost => x
---   | invalid, _ | _, invalid => invalid
---   | value, value => invalid
---   add_assoc := by intro a b c; cases a <;> cases b <;> cases c <;> rfl
---   add_comm := by intro a b; cases a <;> cases b <;> rfl
---   zero_add := by intro a; cases a <;> rfl
---   add_zero := by intro a; cases a <;> rfl
---   add_le_add_left a b Hab c
---     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
-
--- instance instResourceAlgebra: ResourceAlgebra AffRes where
---   valid := valid
---   valid_one := ResState.valid.value
---   valid_zero := ResState.valid.ghost
---   valid_add_left
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   valid_add_right
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   zero_ne_one := by simp
-
--- end AffRes
-
--- def RelRes := ResState
-
--- namespace RelRes
-
--- export ResState (
---   ghost value invalid
---   valid valid.value valid.ghost)
-
--- instance instPartialOrder: PartialOrder RelRes where
---   le := Eq
---   le_refl := Eq.refl
---   le_trans _ _ _ := Eq.trans
---   le_antisymm _ _ H _ := H
-
--- instance instZero: Zero RelRes := ResState.instZero
--- instance instOne: One RelRes := ResState.instOne
--- instance instOrderedAddCommMonoid: OrderedAddCommMonoid RelRes where
---   add
---   | ghost, x | x, ghost => x
---   | invalid, _ | _, invalid => invalid
---   | value, value => value
---   add_assoc := by intro a b c; cases a <;> cases b <;> cases c <;> rfl
---   add_comm := by intro a b; cases a <;> cases b <;> rfl
---   zero_add := by intro a; cases a <;> rfl
---   add_zero := by intro a; cases a <;> rfl
---   add_le_add_left a b Hab c
---     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
-
--- instance instResourceAlgebra: ResourceAlgebra RelRes where
---   valid := valid
---   valid_one := ResState.valid.value
---   valid_zero := ResState.valid.ghost
---   valid_add_left
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   valid_add_right
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   zero_ne_one := by simp
-
--- end RelRes
-
--- def LinRes := ResState
-
--- namespace LinRes
-
--- export ResState (
---   ghost value invalid
---   valid valid.value valid.ghost)
-
--- instance instPartialOrder: PartialOrder LinRes where
---   le := Eq
---   le_refl := Eq.refl
---   le_trans _ _ _ := Eq.trans
---   le_antisymm _ _ H _ := H
-
--- instance instZero: Zero LinRes := ResState.instZero
--- instance instOne: One LinRes := ResState.instOne
--- instance instOrderedAddCommMonoid: OrderedAddCommMonoid LinRes where
---   add
---   | ghost, x | x, ghost => x
---   | invalid, _ | _, invalid => invalid
---   | value, value => invalid
---   add_assoc := by intro a b c; cases a <;> cases b <;> cases c <;> rfl
---   add_comm := by intro a b; cases a <;> cases b <;> rfl
---   zero_add := by intro a; cases a <;> rfl
---   add_zero := by intro a; cases a <;> rfl
---   add_le_add_left a b Hab c
---     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
-
--- instance instResourceAlgebra: ResourceAlgebra LinRes where
---   valid := valid
---   valid_one := ResState.valid.value
---   valid_zero := ResState.valid.ghost
---   valid_add_left
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   valid_add_right
---     := by intro a b H; cases a <;> cases b <;> cases H <;> constructor
---   zero_ne_one := by simp
-
--- end LinRes
+instance VarState.instOrderedAddCommMonoid: OrderedAddCommMonoid VarState where
+  add
+  | ghost, x | x, ghost => x
+  | value, value => value
+  add_assoc := by intro a b c; cases a <;> cases b <;> cases c <;> rfl
+  add_comm := by intro a b; cases a <;> cases b <;> rfl
+  zero_add := by intro a; cases a <;> rfl
+  add_zero := by intro a; cases a <;> rfl
+  add_le_add_left a b Hab c
+    := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
+instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
+  valid _ _ := true
+  valid_symm := by intros; trivial
+  valid_assoc := by intros; trivial
