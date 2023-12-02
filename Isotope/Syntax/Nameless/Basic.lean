@@ -78,7 +78,7 @@ inductive NCfg {T: Type u} (F: Type u) [HasLin T] [InstructionSet F T]
   | cfg_id (L):
     NCfg F (GCtx.cf L) L
   | cfg_def {Γ A q L K}:
-    NCfg F (GCtx.cf (⟨Γ, ⟨q, A⟩⟩::L)) K ->
+    NCfg F (GCtx.cf L) (⟨Γ, ⟨q, A⟩⟩::K) ->
     NCfg F (GCtx.df Γ) K ->
     NCfg F (GCtx.cf L) K
 

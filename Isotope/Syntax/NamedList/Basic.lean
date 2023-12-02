@@ -49,3 +49,72 @@ def Term.upgrade {N: Type u} {T: Type v} [HasLin T]
     let1 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
   | let2 p S a e =>
     let2 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
+
+-- inductive NCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
+--   [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
+--   | br {Γ Δ Ξ ℓ q n A L}:
+--     Γ.ssplit Δ Ξ ->
+--     Term F Ξ true A q ->
+--     L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩ ->
+--     NCfg F (GCtx.df Γ) L
+--   | ite {Γ Δ Ξ L}:
+--     Γ.ssplit Δ Ξ ->
+--     Term F Ξ true Ty.bool q ->
+--     NCfg F (GCtx.df Δ) L ->
+--     NCfg F (GCtx.df Δ) L ->
+--     NCfg F (GCtx.df Γ) L
+--   | let1 {Γ Δ Ξ p q x A L}:
+--     Γ.ssplit Δ Ξ ->
+--     Term F Ξ p A q ->
+--     NCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::Δ)) L ->
+--     NCfg F (GCtx.df Γ) L
+--   | let2 {Γ Δ Ξ p q x A y B L}:
+--     Γ.ssplit Δ Ξ ->
+--     Term F Ξ p (Ty.tensor A B) q ->
+--     NCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ)) L ->
+--     NCfg F (GCtx.df Γ) L
+--   | cfg {Γ L K}:
+--     NCfg F (GCtx.df Γ) L ->
+--     NCfg F (GCtx.cf L) K ->
+--     NCfg F (GCtx.df Γ) K
+--   | cfg_id {L K}:
+--     LCtx.lwk L K ->
+--     NCfg F (GCtx.cf L) K
+--   | cfg_def {Γ ℓ q x A L K}:
+--     NCfg F (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::L) ->
+--     NCfg F (GCtx.df Γ) K ->
+--     NCfg F (GCtx.cf L) K
+
+inductive INCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
+  [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
+  | br {Γ Δ Ξ ℓ q n A L}:
+    Γ.ssplit Δ Ξ ->
+    Term F Ξ true A q ->
+    L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩ ->
+    INCfg F (GCtx.df Γ) L
+  | ite {Γ Δ Ξ L}:
+    Γ.ssplit Δ Ξ ->
+    Term F Ξ true Ty.bool q ->
+    INCfg F (GCtx.df Δ) L ->
+    INCfg F (GCtx.df Δ) L ->
+    INCfg F (GCtx.df Γ) L
+  | let1 {Γ Δ Ξ p q x A L}:
+    Γ.ssplit Δ Ξ ->
+    Term F Ξ p A q ->
+    INCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::Δ)) L ->
+    INCfg F (GCtx.df Γ) L
+  | let2 {Γ Δ Ξ p q x A y B L}:
+    Γ.ssplit Δ Ξ ->
+    Term F Ξ p (Ty.tensor A B) q ->
+    INCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ)) L ->
+    INCfg F (GCtx.df Γ) L
+  | cfg {Γ L K}:
+    INCfg F (GCtx.df Γ) L ->
+    INCfg F (GCtx.cf L) K ->
+    INCfg F (GCtx.df Γ) K
+  | cfg_id (L):
+    INCfg F (GCtx.cf L) L
+  | cfg_def {Γ ℓ q x A L K}:
+    INCfg F (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::L) ->
+    INCfg F (GCtx.df Γ) K ->
+    INCfg F (GCtx.cf L) K

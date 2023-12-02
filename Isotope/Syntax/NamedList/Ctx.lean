@@ -43,6 +43,9 @@ inductive Ctx.name {N: Type u} {T: Type v}: Ctx N T -> N -> Type (max u v)
   | head (q n A) (Γ: Ctx N T): Ctx.name (⟨q, n, A⟩::Γ) n
   | tail {m Γ} v: Ctx.name Γ m -> Ctx.name (v::Γ) m
 
+def Ctx.undef {N: Type u} {T: Type v} (Γ: Ctx N T) (n: N): Prop
+  := IsEmpty (Γ.name n)
+
 instance Ctx.instHasLin {N: Type u} {T: Type v} [HasLin T]
   : HasLin (Ctx N T) where
   aff Γ := Γ.all HasLin.aff
