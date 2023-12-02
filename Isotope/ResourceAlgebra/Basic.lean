@@ -12,15 +12,22 @@ class ResourceAlgebra (T: Type u) extends
   -- case we simply have that they *must* be the unit type...
   -- zero_ne_one: zero ≠ one
 
-  -- emulating a partial commutative monoid
+  -- Emulating a partial commutative monoid via `valid`:
   valid: T -> T -> Prop
-  --TODO: do this externally, by saying valid values are valid 0 x?
-  -- valid_left: ∀ x y, valid x y → valid 0 x
-  -- valid_right: ∀ x y, valid x y → valid 0 y
-  -- valid_add: ∀ x y, valid x y → valid 0 (x + y)
+  valid_zero: valid 0 0
+  valid_zero_one: valid 0 1
   valid_symm: ∀ x y, valid x y → valid y x
   valid_assoc: ∀ x y z, valid x y → valid y z →
     (valid (x + y) z → valid x (y + z))
+
+  valid_one_zero: valid 1 0 := valid_symm 0 1 valid_zero_one
+
+  -- TODO: do this externally, by saying valid values are valid 0 x?
+  -- valid_left: ∀ x y, valid x y → valid 0 x
+  -- valid_right: ∀ x y, valid x y → valid 0 y
+  -- TODO: do *this* externally too?
+  -- i.e. have valid' x y := valid x y ∧ valid 0 (x + y)?
+  valid_add: ∀ x y, valid x y → valid 0 (x + y)
 
 def ResourceAlgebra.valid_assoc' {T: Type u} [ResourceAlgebra T]
   : ∀x y z: T,  valid x y → valid y z → valid x (y + z) → valid (x + y) z
@@ -37,10 +44,10 @@ def ResourceAlgebra.valid_assoc' {T: Type u} [ResourceAlgebra T]
     apply valid_symm
     assumption
 
---TODO: subalgebra definition; induces partial order
---TODO: affine subalgebra (strip validity)
---TODO: relevant subalgebra (strip order)
---TODO: linear subalgebra
+--TODO: subalgebra definition; induces (guess what) a complete semilattice!
+--TODO: affine subalgebra (strip validity to minimal)
+--TODO: relevant subalgebra (strip order to minimal)
+--TODO: linear subalgebra (strip both validity and order; is bottom element)
 --TODO: affine/relevant/linear wrappers
 
 inductive VarState
@@ -73,5 +80,8 @@ instance VarState.instOrderedAddCommMonoid: OrderedAddCommMonoid VarState where
     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
 instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
   valid _ _ := true
+  valid_zero := by trivial
+  valid_zero_one := by trivial
   valid_symm := by intros; trivial
   valid_assoc := by intros; trivial
+  valid_add := by intros; trivial
