@@ -57,9 +57,6 @@ inductive Ctx.subctx {T: Type u} [HasLin T]: Ctx T -> Ctx T -> Type u
 
 def Ctx.is_subctx {T: Type u} [HasLin T] {Γ Δ: Ctx T} := Nonempty (Γ.subctx Δ)
 
---TODO: all subcontexts are unique if and only if all variable names are unique
---TODO: think of how this could be used to define nameless SSA...
-
 inductive Ctx.split {T: Type u} [HasLin T]: Ctx T → Ctx T → Ctx T → Type u
   | nil: split [] [] []
   | left {Γ Δ Ξ} (v l):  l ≤ v → split Γ Δ Ξ → split (v::Γ) (l::Δ) Ξ
