@@ -1,10 +1,12 @@
 import Mathlib.Algebra.Order.Monoid.Defs
 import Mathlib.Init.Order.Defs
 
+import Isotope.Syntax.Ty
+
 --TODO: class for binary validity relation?
 class ResourceAlgebra (T: Type u) extends
-  OrderedAddCommMonoid T,
-  One T
+  OrderedAddCommMonoid T
+  -- ,One T
   where
   -- mandatory separation between values and ghosts
   -- NOTE: if this is not enforced, we're allowed "pure ghost" values which
@@ -15,12 +17,12 @@ class ResourceAlgebra (T: Type u) extends
   -- Emulating a partial commutative monoid via `valid`:
   valid: T -> T -> Prop
   valid_zero: valid 0 0
-  valid_zero_one: valid 0 1
+  -- valid_zero_one: valid 0 1
   valid_symm: ∀ x y, valid x y → valid y x
   valid_assoc: ∀ x y z, valid x y → valid y z →
     (valid (x + y) z → valid x (y + z))
 
-  valid_one_zero: valid 1 0 := valid_symm 0 1 valid_zero_one
+  -- valid_one_zero: valid 1 0 := valid_symm 0 1 valid_zero_one
 
   -- TODO: do this externally, by saying valid values are valid 0 x?
   -- valid_left: ∀ x y, valid x y → valid 0 x
@@ -45,10 +47,82 @@ def ResourceAlgebra.valid_assoc' {T: Type u} [ResourceAlgebra T]
     assumption
 
 --TODO: subalgebra definition; induces (guess what) a complete semilattice!
---TODO: affine subalgebra (strip validity to minimal)
---TODO: relevant subalgebra (strip order to minimal)
---TODO: linear subalgebra (strip both validity and order; is bottom element)
---TODO: affine/relevant/linear wrappers
+
+def ResourceAlgebra.affineAlgebra (T: Type u) [R: ResourceAlgebra T]
+  : ResourceAlgebra T where
+  valid x y := R.valid x y ∧ (x = 0 ∨ y = 0)
+  valid_zero := ⟨R.valid_zero, Or.inl rfl⟩
+  valid_symm _ _ | ⟨Hr, Hxy⟩ => ⟨R.valid_symm _ _ Hr, Hxy.elim Or.inr Or.inl⟩
+  valid_assoc _ _ _
+    | ⟨Hr1, Or.inl Hx⟩, ⟨Hr2, _⟩, ⟨Hr3, _⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, Or.inl Hx⟩
+    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inr Hz⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, by simp [Hy, Hz]⟩
+    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inl Hxy⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, by rw [<-Hxy]; simp [Hy]⟩
+  valid_add _ _ | ⟨Hr, _⟩ => ⟨R.valid_add _ _ Hr, Or.inl rfl⟩
+
+def ResourceAlgebra.relevantAlgebra (T: Type u) [R: ResourceAlgebra T]
+  : ResourceAlgebra T where
+  le := Eq
+  le_refl := Eq.refl
+  le_trans _ _ _ := Eq.trans
+  le_antisymm _ _ H _ := H
+  lt _ _ := False
+  lt_iff_le_not_le _ _ := ⟨False.elim, λ⟨H, C⟩ => C H.symm⟩
+  add_le_add_left _ _ | rfl, _ => rfl
+  valid := R.valid
+  valid_zero := R.valid_zero
+  valid_symm := R.valid_symm
+  valid_assoc := R.valid_assoc
+  valid_add := R.valid_add
+
+def ResourceAlgebra.linearAlgebra (T: Type u) [R: ResourceAlgebra T]
+  : ResourceAlgebra T where
+  le := Eq
+  le_refl := Eq.refl
+  le_trans _ _ _ := Eq.trans
+  le_antisymm _ _ H _ := H
+  lt _ _ := False
+  lt_iff_le_not_le _ _ := ⟨False.elim, λ⟨H, C⟩ => C H.symm⟩
+  add_le_add_left _ _ | rfl, _ => rfl
+  valid x y := R.valid x y ∧ (x = 0 ∨ y = 0)
+  valid_zero := ⟨R.valid_zero, Or.inl rfl⟩
+  valid_symm _ _ | ⟨Hr, Hxy⟩ => ⟨R.valid_symm _ _ Hr, Hxy.elim Or.inr Or.inl⟩
+  valid_assoc _ _ _
+    | ⟨Hr1, Or.inl Hx⟩, ⟨Hr2, _⟩, ⟨Hr3, _⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, Or.inl Hx⟩
+    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inr Hz⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, by simp [Hy, Hz]⟩
+    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inl Hxy⟩ =>
+      ⟨R.valid_assoc _ _ _ Hr1 Hr2 Hr3, by rw [<-Hxy]; simp [Hy]⟩
+  valid_add _ _ | ⟨Hr, _⟩ => ⟨R.valid_add _ _ Hr, Or.inl rfl⟩
+
+--TODO: the linear algebra is the smallest possible resource algebra
+
+def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
+  : Transparency -> ResourceAlgebra T
+  | ⟨true, true⟩ => R
+  | ⟨true, false⟩ => R.affineAlgebra
+  | ⟨false, true⟩ => R.relevantAlgebra
+  | ⟨false, false⟩ => R.linearAlgebra
+
+def LinT (_: Transparency) (T: Type u) := T
+
+instance LinT.instResourceAlgebra (T: Type u) [ResourceAlgebra T]
+  (q: Transparency): ResourceAlgebra (LinT q T)
+  := ResourceAlgebra.transparentAlgebra T q
+
+def Aff (T: Type u) := T
+def Rel (T: Type u) := T
+def Lin (T: Type u) := T
+
+instance Aff.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
+  : ResourceAlgebra (Aff T) := ResourceAlgebra.affineAlgebra T
+instance Rel.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
+  : ResourceAlgebra (Rel T) := ResourceAlgebra.relevantAlgebra T
+instance Lin.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
+  : ResourceAlgebra (Lin T) := ResourceAlgebra.linearAlgebra T
 
 inductive VarState
   | ghost
@@ -81,7 +155,10 @@ instance VarState.instOrderedAddCommMonoid: OrderedAddCommMonoid VarState where
 instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
   valid _ _ := true
   valid_zero := by trivial
-  valid_zero_one := by trivial
+  -- valid_zero_one := by trivial
   valid_symm := by intros; trivial
   valid_assoc := by intros; trivial
   valid_add := by intros; trivial
+
+--TODO: resource algebra on types
+--TODO: relevant/affine resource algebras on types; products of subalgebras
