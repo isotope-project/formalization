@@ -50,6 +50,16 @@ instance Ctx.instHasLin {T: Type u} [HasLin T]: HasLin (Ctx T) where
   aff Γ := Γ.all HasLin.aff
   rel Γ := Γ.all HasLin.rel
 
+inductive Ctx.subctx {T: Type u} [HasLin T]: Ctx T -> Ctx T -> Type u
+  | nil: subctx [] []
+  | cons {Γ Δ} {v l: Var T}: l ≤ v -> subctx Γ Δ -> subctx (v::Γ) (l::Δ)
+  | discard {Γ Δ} (v: Var T): subctx Γ Δ -> subctx (v::Γ) Δ
+
+def Ctx.is_subctx {T: Type u} [HasLin T] {Γ Δ: Ctx T} := Nonempty (Γ.subctx Δ)
+
+--TODO: all subcontexts are unique if and only if all variable names are unique
+--TODO: think of how this could be used to define nameless SSA...
+
 inductive Ctx.split {T: Type u} [HasLin T]: Ctx T → Ctx T → Ctx T → Type u
   | nil: split [] [] []
   | left {Γ Δ Ξ} (v l):  l ≤ v → split Γ Δ Ξ → split (v::Γ) (l::Δ) Ξ
@@ -57,6 +67,18 @@ inductive Ctx.split {T: Type u} [HasLin T]: Ctx T → Ctx T → Ctx T → Type u
   | discard {Γ Δ Ξ} (v): HasLin.aff v → split Γ Δ Ξ → split (v::Γ) Δ Ξ
   | dup {Γ Δ Ξ} (v l r): HasLin.rel v → l ≤ v → r ≤ v → split Γ Δ Ξ
     → split (v::Γ) (l::Δ) (r::Ξ)
+
+def Ctx.split.subctx_left {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : Γ.split Δ Ξ -> Γ.subctx Δ
+  | nil => subctx.nil
+  | right _ _ _ H | discard _ _ H => subctx.discard _ (subctx_left H)
+  | left _ _ Hl H | dup _ _ _ _ Hl _ H => subctx.cons Hl (subctx_left H)
+
+def Ctx.split.subctx_right {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx T}
+  : Γ.split Δ Ξ -> Γ.subctx Ξ
+  | nil => subctx.nil
+  | left _ _ _ H | discard _ _ H => subctx.discard _ (subctx_right H)
+  | right _ _ Hr H | dup _ _ _ _ _ Hr H => subctx.cons Hr (subctx_right H)
 
 inductive Ctx.split.strict {T: Type u} [HasLin T]
   : {Γ Δ Ξ: Ctx T} -> split Γ Δ Ξ -> Prop
