@@ -7,6 +7,9 @@ structure Label (T: Type u) where
   live: Ctx T
   param: Var T
 
+def Label.subctx {T: Type u} [HasLin T] (Γ: Ctx T) (l: Label T)
+  := Γ.subctx l.live
+
 structure Label.wk {T: Type u} [HasLin T] (l k: Label T) where
   name: l.name = k.name
   live: l.live.wk k.live
@@ -61,3 +64,7 @@ inductive LCtx.join {T: Type u} [HasLin T]
   | left {P L K J} (l): join P L K J -> join P (l::L) K (l::J)
   | right {P L K J} (r): join P L K J -> join P L (r::K) (r::J)
   | both {P L K J b}: P b -> join P L K J -> join P (b::L) (b::K) (b::J)
+  | unreached {P L K J} (l): join P L K J -> join P L K (l::J)
+
+def LCtx.cjoin {T: Type u} [HasLin T] (Γ: Ctx T)
+  := LCtx.join (Label.subctx Γ)
