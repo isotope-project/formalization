@@ -1,2 +1,1 @@
-import Isotope.Syntax.NamedList.Ctx
-import Isotope.Syntax.NamedList.LCtx
+import Isotope.Syntax.NamedList.Basic
