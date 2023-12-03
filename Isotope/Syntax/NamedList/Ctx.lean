@@ -63,6 +63,12 @@ inductive Ctx.subctx {N: Type u} {T: Type v} [HasLin T]
 def Ctx.is_subctx {N: Type u} {T: Type v} [HasLin T] {Γ Δ: Ctx N T}: Prop
   := Nonempty (Γ.subctx Δ)
 
+inductive Ctx.subnames {N: Type u} {T: Type v} [HasLin T]
+  : List N -> Ctx N T -> Type (max u v)
+  | nil: subnames [] []
+  | cons {Γ Δ} {q n A}: Ctx.subnames Γ Δ -> subnames (n::Γ) (⟨q, n, A⟩::Δ)
+  | discard {Γ Δ} {n}: Ctx.subnames Γ Δ -> subnames (n::Γ) Δ
+
 --TODO: all subcontexts are unique if and only if all variable names are unique
 --TODO: think of how this could be used to define nameless SSA...
 

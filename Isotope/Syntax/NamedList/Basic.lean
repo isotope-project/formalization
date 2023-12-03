@@ -50,45 +50,48 @@ def Term.upgrade {N: Type u} {T: Type v} [HasLin T]
   | let2 p S a e =>
     let2 _ S (upgrade (le_refl _) Hq a) (upgrade Hp Hq e)
 
-inductive NCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
-  [InstructionSet F T]: List N -> GCtx N T -> LCtx N T -> Type (max (max u v) w)
+inductive NRCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
+  [InstructionSet F T]: List N -> GCtx N T -> LCtx N T -> LCtx N T
+    -> Type (max (max u v) w)
   | br {ΓN Γ Δ Ξ ℓ q n A L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ true A q ->
     L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩ ->
-    NCfg F ΓN (GCtx.df Γ) L
-  | ite {ΓN Γ Δ Ξ L}:
+    NRCfg F ΓN (GCtx.df Γ) L L
+  | ite {ΓN Γ Δ Ξ L K J}:
     Γ.ssplit Δ Ξ ->
+    J.njoin ΓN L K -> -- anybody defining new variables must be new AND unique
     Term F Ξ true Ty.bool q ->
-    NCfg F ΓN (GCtx.df Δ) L ->
-    NCfg F ΓN (GCtx.df Δ) L ->
-    NCfg F ΓN (GCtx.df Γ) L
+    NRCfg F ΓN (GCtx.df Δ) L L ->
+    NRCfg F ΓN (GCtx.df Δ) K K ->
+    NRCfg F ΓN (GCtx.df Γ) J J
   | let1 {ΓN Γ Δ Ξ p q x A L}:
     Γ.ssplit Δ Ξ ->
     x ∉ ΓN ->
     Term F Ξ p A q ->
-    NCfg F (x::ΓN) (GCtx.df (⟨⟨true, true⟩, x, A⟩::Δ)) L ->
-    NCfg F ΓN (GCtx.df Γ) L
+    NRCfg F (x::ΓN) (GCtx.df (⟨⟨true, true⟩, x, A⟩::Δ)) L L ->
+    NRCfg F ΓN (GCtx.df Γ) L L
   | let2 {ΓN Γ Δ Ξ p q x A y B L}:
     Γ.ssplit Δ Ξ ->
     x ∉ ΓN ->
     y ∉ ΓN ->
     Term F Ξ p (Ty.tensor A B) q ->
-    NCfg F (x::y::ΓN) (GCtx.df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ)) L ->
-    NCfg F ΓN (GCtx.df Γ) L
+    NRCfg F (x::y::ΓN) (GCtx.df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ)) L L ->
+    NRCfg F ΓN (GCtx.df Γ) L L
   | cfg {ΓN Γ L K}:
-    NCfg F ΓN (GCtx.df Γ) L ->
-    NCfg F ΓN (GCtx.cf L) K ->
-    NCfg F ΓN (GCtx.df Γ) K
+    NRCfg F ΓN (GCtx.df Γ) L L ->
+    NRCfg F ΓN (GCtx.cf L) K K ->
+    NRCfg F ΓN (GCtx.df Γ) K K
   --TODO: control control-flow
-  | cfg_id {ΓN L K}:
+  | cfg_id {ΓN L K J}:
     LCtx.lwk L K ->
-    NCfg F ΓN (GCtx.cf L) K
-  | cfg_def {ΓN Γ ℓ q x A L K}:
+    NRCfg F ΓN (GCtx.cf L) K J
+  | cfg_def {ΓN Γ ℓ q x A L K TL Tt TJ}:
+    TJ.njoin ΓN TL Tt -> -- anybody defining new variables must be new AND unique
     x ∉ ΓN ->
-    NCfg F (x::ΓN) (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::L) ->
-    NCfg F ΓN (GCtx.df Γ) K ->
-    NCfg F ΓN (GCtx.cf L) K
+    NRCfg F (x::ΓN) (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::K) TL ->
+    NRCfg F ΓN (GCtx.df Γ) L Tt ->
+    NRCfg F ΓN (GCtx.cf L) K TJ
 
 inductive INCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
@@ -120,6 +123,6 @@ inductive INCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   | cfg_id (L):
     INCfg F (GCtx.cf L) L
   | cfg_def {Γ ℓ q x A L K}:
-    INCfg F (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::L) ->
-    INCfg F (GCtx.df Γ) K ->
+    INCfg F (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::K) ->
+    INCfg F (GCtx.df Γ) L ->
     INCfg F (GCtx.cf L) K

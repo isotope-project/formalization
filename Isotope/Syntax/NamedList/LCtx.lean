@@ -9,6 +9,8 @@ structure Label (N: Type u) (T: Type v) where
 
 def Label.subctx {N: Type u} {T: Type v} [HasLin T] (Γ: Ctx N T) (l: Label N T)
   := Γ.subctx l.live
+def Label.subnames {N: Type u} {T: Type v} [HasLin T] (Γ: List N) (l: Label N T)
+  := Ctx.subnames Γ l.live
 
 structure Label.wk {N: Type u} {T: Type v} [HasLin T] (l k: Label N T) where
   name: l.name = k.name
@@ -70,3 +72,6 @@ inductive LCtx.join {N: Type u} {T: Type v} [HasLin T]
 
 def LCtx.cjoin {N: Type u} {T: Type v} [HasLin T] (Γ: Ctx N T)
   := LCtx.join (Label.subctx Γ)
+
+def LCtx.njoin {N: Type u} {T: Type v} [HasLin T] (Γ: List N) (L: LCtx N T)
+  := LCtx.join (Label.subnames Γ) L
