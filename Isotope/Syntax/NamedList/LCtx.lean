@@ -37,6 +37,11 @@ inductive LCtx.lwk {N: Type u} {T: Type v} [HasLin T]
   | cons {L K: LCtx N T} {l l': Label N T}
     : l.wk l' -> lwk L K  -> lwk (l :: L) (l' :: K)
 
+@[match_pattern]
+def LCtx.lwk.scons {N: Type u} {T: Type v} [HasLin T] {L K: LCtx N T}
+  (l: Label N T): lwk L K -> lwk (l :: L) (l :: K)
+  := cons (Label.wk.id l)
+
 -- inductive LCtx.sjoin {T: Type u} [HasLin T]: LCtx T -> LCtx T -> Type u
 --   | nil: sjoin [] []
 --   | cons {L K: LCtx T} (l: Label T): sjoin L K -> sjoin (l :: L) (l :: K)

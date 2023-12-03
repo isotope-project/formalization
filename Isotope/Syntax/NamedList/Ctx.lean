@@ -49,6 +49,9 @@ def Ctx.undef {N: Type u} {T: Type v} (Γ: Ctx N T) (n: N): Prop
 def Ctx.names {N: Type u} {T: Type v}: Ctx N T -> List N
   := List.map Var.name
 
+def Ctx.names_unique {N: Type u} {T: Type v} (Γ: Ctx N T): Prop
+  := Γ.names.Nodup
+
 instance Ctx.instHasLin {N: Type u} {T: Type v} [HasLin T]
   : HasLin (Ctx N T) where
   aff Γ := Γ.all HasLin.aff
