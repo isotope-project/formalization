@@ -1,6 +1,6 @@
 import Isotope.Syntax.Ty
 
-namespace NamedList
+namespace SimpleNamed
 
 structure Var (N: Type u) (T: Type v) extends Transparency where
   name: N

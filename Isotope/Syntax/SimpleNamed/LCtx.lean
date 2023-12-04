@@ -1,6 +1,6 @@
-import Isotope.Syntax.NamedList.Ctx
+import Isotope.Syntax.SimpleNamed.Ctx
 
-namespace NamedList
+namespace SimpleNamed
 
 structure Label (N: Type u) (T: Type v) where
   name: N
