@@ -9,8 +9,8 @@ structure Label (N: Type u) (T: Type v) where
 
 def Label.subctx {N: Type u} {T: Type v} [HasLin T] (Γ: Ctx N T) (l: Label N T)
   := Γ.subctx l.live
-def Label.subnames {N: Type u} {T: Type v} [HasLin T] (Γ: List N) (l: Label N T)
-  := Ctx.subnames Γ l.live
+-- def Label.subnames {N: Type u} {T: Type v} [HasLin T] (Γ: List N) (l: Label N T)
+--   := Ctx.subnames Γ l.live
 
 structure Label.wk {N: Type u} {T: Type v} [HasLin T] (l k: Label N T) where
   name: l.name = k.name
@@ -67,16 +67,25 @@ def LCtx.label.wk {N: Type u} {T: Type v} [HasLin T] {L: LCtx N T}
   | lwk.cons W' j => lwk.cons (W.comp W') j
 
 inductive LCtx.join {N: Type u} {T: Type v} [HasLin T]
-  : (Label N T -> Sort w) -> LCtx N T -> LCtx N T -> LCtx N T
+  (P: Label N T -> Sort w)
+  : LCtx N T -> LCtx N T -> LCtx N T
     -> Sort (max (max (u+1) (v+1)) w)
-  | nil P: join P [] [] []
-  | left {P L K J} (l): join P L K J -> join P (l::L) K (l::J)
-  | right {P L K J} (r): join P L K J -> join P L (r::K) (r::J)
-  | both {P L K J b}: P b -> join P L K J -> join P (b::L) (b::K) (b::J)
-  | unreached {P L K J} (l): join P L K J -> join P L K (l::J)
+  | nil: join P [] [] []
+  | left {L K J} (l): join P L K J -> join P (l::L) K (l::J)
+  | right {L K J} (r): join P L K J -> join P L (r::K) (r::J)
+  | both {L K J b}: P b -> join P L K J -> join P (b::L) (b::K) (b::J)
+  | unreached {L K J} (l): join P L K J -> join P L K (l::J)
 
 def LCtx.cjoin {N: Type u} {T: Type v} [HasLin T] (Γ: Ctx N T)
   := LCtx.join (Label.subctx Γ)
 
 def LCtx.njoin {N: Type u} {T: Type v} [HasLin T] (Γ: List N) (L: LCtx N T)
-  := LCtx.join (Label.subnames Γ) L
+  := LCtx.join (λL => List.Sublist L.live.names Γ) L
+
+def LCtx.njoin.nwk {N: Type u} {T: Type v} [HasLin T] {Γ Δ: List N}
+  {L K J: LCtx N T} (H: Δ.Sublist Γ): LCtx.njoin Δ L K J -> LCtx.njoin Γ L K J
+  | LCtx.join.nil => LCtx.join.nil
+  | LCtx.join.left _ j => LCtx.join.left _ (nwk H j)
+  | LCtx.join.right _ j => LCtx.join.right _ (nwk H j)
+  | LCtx.join.both b j => LCtx.join.both (b.trans H) (nwk H j)
+  | LCtx.join.unreached _ j => LCtx.join.unreached _ (nwk H j)
