@@ -192,30 +192,34 @@ instance ResourceAlgebra.instResourceAlgebraPair {A B}
     => ⟨valid_assoc_mp _ _ _ Hxya Hyza Hxyza,
         valid_assoc_mp _ _ _ Hxyb Hyzb Hxyzb⟩
 
-class TyResourceAlgebra.{u, v} (T: Type u) where
+class ResourceAlgebraFamily.{u, v} (T: Type u) where
   res: T -> Type v
   resourceAlgebra: (t: T) -> ResourceAlgebra (res t)
 
-instance TyResourceAlgebra.instResourceAlgebra
-  {T: Type u} [TyResourceAlgebra T] {t: T}
+instance ResourceAlgebraFamily.instResourceAlgebra
+  {T: Type u} [ResourceAlgebraFamily T] {t: T}
   : ResourceAlgebra (res t)
   := resourceAlgebra t
 
-def Ty.res {T: Type u} [TyResourceAlgebra T]: Ty T -> Type v
-  | Ty.base X => TyResourceAlgebra.res X
+def Ty.res {T: Type u} [ResourceAlgebraFamily T]: Ty T -> Type v
+  | Ty.base X => ResourceAlgebraFamily.res X
   | Ty.unit | Ty.bool => VarState
   | Ty.tensor A B => res A × res B
 
-def Ty.resourceAlgebra {T: Type u} [TyResourceAlgebra T]
+def Ty.resourceAlgebra {T: Type u} [ResourceAlgebraFamily T]
   : (t: Ty T) -> ResourceAlgebra (res t)
-  | Ty.base X => TyResourceAlgebra.resourceAlgebra X
+  | Ty.base X => ResourceAlgebraFamily.resourceAlgebra X
   | Ty.unit | Ty.bool => VarState.instResourceAlgebra
   | Ty.tensor A B => @ResourceAlgebra.instResourceAlgebraPair _ _
     (resourceAlgebra A)
     (resourceAlgebra B)
 
-instance TyResourceAlgebra.instTyResourceAlgebraTy
-  {T: Type u} [TyResourceAlgebra T]: TyResourceAlgebra (Ty T)
+instance Ty.instResourceAlgebra
+  {T: Type u} [ResourceAlgebraFamily T] {t: Ty T}: ResourceAlgebra (t.res)
+  := t.resourceAlgebra
+
+instance ResourceAlgebraFamily.instResourceAlgebraFamilyTy
+  {T: Type u} [ResourceAlgebraFamily T]: ResourceAlgebraFamily (Ty T)
   where
   res := Ty.res
   resourceAlgebra := Ty.resourceAlgebra
