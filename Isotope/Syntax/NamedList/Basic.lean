@@ -60,13 +60,13 @@ inductive NRCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
     L.lwk K ->
     NRCfg F ΓN (GCtx.df Γ) L K
   -- anybody defining new variables must be new AND unique
-  | ite {ΓN Γ Δ Ξ L K J}:
+  | ite {ΓN Γ Δ Ξ L K J J'}:
     Γ.ssplit Δ Ξ ->
     J.njoin ΓN L K ->
     Term F Ξ true Ty.bool q ->
-    NRCfg F ΓN (GCtx.df Δ) L J ->
-    NRCfg F ΓN (GCtx.df Δ) K J ->
-    NRCfg F ΓN (GCtx.df Γ) J J
+    NRCfg F ΓN (GCtx.df Δ) L J' ->
+    NRCfg F ΓN (GCtx.df Δ) K J' ->
+    NRCfg F ΓN (GCtx.df Γ) J J'
   | let1 {ΓN Γ Δ Ξ p q x A L K}:
     Γ.ssplit Δ Ξ ->
     x ∉ ΓN ->
@@ -112,6 +112,17 @@ def NRCfg.intermediate_list {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   | cfg_id _ _ => []
   | @cfg_def _ _ _ _ _ _ _ _ ℓ _ x _ _ _ _ _ _ _ t L
     => ℓ::x::(t.intermediate_list ++ L.intermediate_list)
+
+def NRCfg.lwk {N: Type u} {T: Type v} {F: Type w} [HasLin T]
+  [InstructionSet F T] {ΓN} {G: GCtx N T} {L K J}
+  (HJ: K.lwk J): NRCfg F ΓN G L K → NRCfg F ΓN G L J
+  | br S a ℓ W => br S a ℓ (W.comp HJ)
+  | ite S W e s t => ite S W e (s.lwk HJ) (t.lwk HJ)
+  | let1 S Hx a t => let1 S Hx a (t.lwk HJ)
+  | let2 S Hx Hy a t => let2 S Hx Hy a (t.lwk HJ)
+  | cfg t W W' => cfg t W (W'.comp HJ)
+  | cfg_id Hs Hl => cfg_id Hs (Hl.comp HJ)
+  | cfg_def NJ Hx W t => cfg_def NJ Hx (W.lwk (HJ.scons _)) t
 
 inductive INCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
@@ -183,5 +194,5 @@ def NRCfg.toINCfg {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   | let1 S _ a t => INCfg.let1 S a t.toINCfg
   | let2 S _ _ a t => INCfg.let2 S a t.toINCfg
   | cfg t W H => INCfg.cfg t.toINCfg ((W.toINCfg).lwk H)
-  | cfg_id HL HK => INCfg.cfg_id HK
+  | cfg_id _ HK => INCfg.cfg_id HK
   | cfg_def _ _ W t => INCfg.cfg_def W.toINCfg t.toINCfg
