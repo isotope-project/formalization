@@ -1,4 +1,5 @@
 import Mathlib.Algebra.Order.Monoid.Defs
+import Mathlib.Algebra.Order.Monoid.Prod
 import Mathlib.Algebra.Group.Ext
 import Mathlib.Init.Order.Defs
 
@@ -30,7 +31,7 @@ class ResourceAlgebra (T: Type u) extends
   -- zero_ne_one: zero ≠ one
 
 structure ResourceAlgebra.Subalgebra {T} (S R: ResourceAlgebra T): Prop where
-  add_eq: S.add = R.add
+  add_eq: S.add = R.add --TODO: only require equality on valid set?
   le_sub x y: S.le x y -> R.le x y
   valid_sub x y: S.valid x y -> R.valid x y
 
@@ -145,7 +146,7 @@ instance Rel.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
 instance Lin.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
   : ResourceAlgebra (Lin T) := ResourceAlgebra.linearAlgebra T
 
-inductive VarState
+inductive VarState: Type u
   | ghost
   | value
 
@@ -173,11 +174,48 @@ instance VarState.instOrderedAddCommMonoid: OrderedAddCommMonoid VarState where
   add_zero := by intro a; cases a <;> rfl
   add_le_add_left a b Hab c
     := by cases a <;> cases b <;> cases c <;> cases Hab <;> constructor
+
 instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
   valid _ _ := true
   valid_id _ := by trivial
   valid_symm := by intros; trivial
   valid_assoc_mp := by intros; trivial
 
---TODO: resource algebra on types
---TODO: relevant/affine resource algebras on types; products of subalgebras
+instance ResourceAlgebra.instResourceAlgebraPair {A B}
+  [ResourceAlgebra A] [ResourceAlgebra B]
+  : ResourceAlgebra (A × B) where
+  valid | ⟨xa, xb⟩, ⟨ya, yb⟩ => valid xa ya ∧ valid xb yb
+  valid_id | ⟨a, b⟩ => ⟨valid_id a, valid_id b⟩
+  valid_symm _ _ | ⟨Ha, Hb⟩ => ⟨valid_symm _ _ Ha, valid_symm _ _ Hb⟩
+  valid_assoc_mp _ _ _
+    | ⟨Hxya, Hxyb⟩, ⟨Hyza, Hyzb⟩, ⟨Hxyza, Hxyzb⟩
+    => ⟨valid_assoc_mp _ _ _ Hxya Hyza Hxyza,
+        valid_assoc_mp _ _ _ Hxyb Hyzb Hxyzb⟩
+
+class TyResourceAlgebra.{u, v} (T: Type u) where
+  res: T -> Type v
+  resourceAlgebra: (t: T) -> ResourceAlgebra (res t)
+
+instance TyResourceAlgebra.instResourceAlgebra
+  {T: Type u} [TyResourceAlgebra T] {t: T}
+  : ResourceAlgebra (res t)
+  := resourceAlgebra t
+
+def Ty.res {T: Type u} [TyResourceAlgebra T]: Ty T -> Type v
+  | Ty.base X => TyResourceAlgebra.res X
+  | Ty.unit | Ty.bool => VarState
+  | Ty.tensor A B => res A × res B
+
+def Ty.resourceAlgebra {T: Type u} [TyResourceAlgebra T]
+  : (t: Ty T) -> ResourceAlgebra (res t)
+  | Ty.base X => TyResourceAlgebra.resourceAlgebra X
+  | Ty.unit | Ty.bool => VarState.instResourceAlgebra
+  | Ty.tensor A B => @ResourceAlgebra.instResourceAlgebraPair _ _
+    (resourceAlgebra A)
+    (resourceAlgebra B)
+
+instance TyResourceAlgebra.instTyResourceAlgebraTy
+  {T: Type u} [TyResourceAlgebra T]: TyResourceAlgebra (Ty T)
+  where
+  res := Ty.res
+  resourceAlgebra := Ty.resourceAlgebra
