@@ -30,6 +30,25 @@ class ResourceAlgebra (T: Type u) extends
   -- case we simply have that they *must* be the unit type...
   -- zero_ne_one: zero ≠ one
 
+theorem ordered_add_comm_monoid_ext {T} (S R: OrderedAddCommMonoid T)
+  (Hadd: R.add = S.add) (Hle: ∀x y, R.le x y ↔ S.le x y): R = S
+  := by
+      cases R; cases S;
+      have Hle := PartialOrder.ext Hle;
+      have Hadd := AddCommMonoid.ext Hadd;
+      congr
+
+theorem ResourceAlgebra.ext {T} (S R: ResourceAlgebra T)
+    (Hadd: R.add = S.add)
+    (Hle: ∀x y, R.le x y ↔ S.le x y)
+    (Hvalid: ∀x y, R.valid x y ↔ S.valid x y): R = S
+  := by
+    have Hvalid: R.valid = S.valid
+      := by funext x y; apply propext; apply Hvalid
+    cases R; cases S;
+    have Hoadd := ordered_add_comm_monoid_ext _ _ Hadd Hle;
+    congr
+
 structure ResourceAlgebra.Subalgebra {T} (S R: ResourceAlgebra T): Prop where
   add_eq: S.add = R.add --TODO: only require equality on valid set?
   le_sub x y: S.le x y -> R.le x y
@@ -53,22 +72,21 @@ def ResourceAlgebra.Subalgebra.trans {T} {Q S R: ResourceAlgebra T}
 
 def ResourceAlgebra.affineAlgebra (T: Type u) [R: ResourceAlgebra T]
   : ResourceAlgebra T where
-  valid x y := R.valid x y ∧ (x = 0 ∨ y = 0)
-  valid_id y := ⟨R.valid_id y, Or.inl rfl⟩
-  valid_symm _ _ | ⟨Hr, Hxy⟩ => ⟨R.valid_symm _ _ Hr, Hxy.elim Or.inr Or.inl⟩
+  valid x y := x = 0 ∨ y = 0
+  valid_id y := Or.inl rfl
+  valid_symm _ _ | Hxy => Hxy.elim Or.inr Or.inl
   valid_assoc_mp _ _ _
-    | ⟨Hr1, Or.inl Hx⟩, ⟨Hr2, _⟩, ⟨Hr3, _⟩ =>
-      ⟨R.valid_assoc_mp _ _ _ Hr1 Hr2 Hr3, Or.inl Hx⟩
-    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inr Hz⟩ =>
-      ⟨R.valid_assoc_mp _ _ _ Hr1 Hr2 Hr3, by simp [Hy, Hz]⟩
-    | ⟨Hr1, Or.inr Hy⟩, ⟨Hr2, _⟩, ⟨Hr3, Or.inl Hxy⟩ =>
-      ⟨R.valid_assoc_mp _ _ _ Hr1 Hr2 Hr3, by rw [<-Hxy]; simp [Hy]⟩
+    | Or.inl Hx, _, _ => Or.inl Hx
+    | Or.inr Hy, _, Or.inr Hz => by simp [Hy, Hz]
+    | Or.inr Hy, _, Or.inl Hxy => by rw [<-Hxy]; simp [Hy]
 
 def ResourceAlgebra.affineSubalgebra (T: Type u) [R: ResourceAlgebra T]
   : (R.affineAlgebra).Subalgebra R where
   add_eq := rfl
   le_sub _ _ := id
-  valid_sub _ _ H := H.1
+  valid_sub
+    | _, _, Or.inl rfl => valid_id _
+    | _, _, Or.inr rfl => valid_symm _ _ (valid_id _)
 
 def ResourceAlgebra.relevantAlgebra (T: Type u) [R: ResourceAlgebra T]
   : ResourceAlgebra T where
@@ -115,19 +133,130 @@ def ResourceAlgebra.linearSubalgebra (T: Type u) [R: ResourceAlgebra T]
     | Or.inl H => H ▸ (valid_id _)
     | Or.inr H => H ▸ (valid_symm _ _ (valid_id _))
 
-def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
+def ResourceAlgebra.transparentAlgebra' (T: Type u) [R: ResourceAlgebra T]
   : Transparency -> ResourceAlgebra T
   | ⟨true, true⟩ => R
   | ⟨true, false⟩ => R.affineAlgebra
   | ⟨false, true⟩ => R.relevantAlgebra
   | ⟨false, false⟩ => linearAlgebra T
 
-def ResourceAlgebra.transparentSubalgebra (T: Type u) [R: ResourceAlgebra T]
-  : (q: Transparency) -> (R.transparentAlgebra q).Subalgebra R
+def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
+  (q: Transparency): ResourceAlgebra T where
+  le x y := (q.aff ∧ R.le x y) ∨ x = y
+  le_refl x := Or.inr rfl
+  le_trans  _ _ _
+    | Or.inl H, Or.inl H' => Or.inl ⟨H.1, H.2.trans H'.2⟩
+    | Or.inr rfl, H | H, Or.inr rfl => H
+  le_antisymm _ _
+    | Or.inl H, Or.inl H' => R.le_antisymm _ _ H.2 H'.2
+    | Or.inr rfl, _ | _, Or.inr rfl => rfl
+  lt x y := q.aff ∧ R.lt x y
+  lt_iff_le_not_le _ _ := ⟨
+    λ⟨Ha, Hlt⟩ =>
+      let H' := (R.lt_iff_le_not_le _ _).mp Hlt;
+      ⟨ Or.inl ⟨Ha, H'.1⟩,
+        λH => H'.2 (match H with | Or.inr rfl => le_refl _ | Or.inl H => H.2) ⟩,
+    λ| ⟨Or.inr rfl, Hnl⟩ => (Hnl (Or.inr rfl)).elim
+     | ⟨Or.inl ⟨Ha, Hle⟩, Hnl⟩
+      => ⟨Ha, (R.lt_iff_le_not_le _ _).mpr ⟨Hle, λH => Hnl (Or.inl ⟨Ha, H⟩)⟩⟩
+    ⟩
+  add_le_add_left _ _
+    | Or.inl H, _ => Or.inl ⟨H.1, R.add_le_add_left _ _ H.2 _⟩
+    | Or.inr rfl, _ => Or.inr rfl
+  valid x y := (q.rel ∧ R.valid x y) ∨ x = 0 ∨ y = 0
+  valid_id y := Or.inr (Or.inl rfl)
+  valid_symm _ _
+    | Or.inl Hxy => Or.inl ⟨Hxy.1, R.valid_symm _ _ Hxy.2⟩
+    | Or.inr Hxy => Or.inr (Or.elim Hxy Or.inr Or.inl)
+  valid_assoc_mp x y z
+    | Or.inl ⟨Hr, Hxy⟩, Hyz, Hxyz
+      => Or.inl ⟨Hr, R.valid_assoc_mp _ _ _ Hxy
+        (match Hyz with
+          | Or.inl H => H.2
+          | Or.inr (Or.inl H) => H ▸ R.valid_id _
+          | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _) )
+        (match Hxyz with
+          | Or.inl H => H.2
+          | Or.inr (Or.inl H) => H ▸ R.valid_id _
+          | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _) )⟩
+    | Or.inr (Or.inl Hx), _, _ => Or.inr (Or.inl Hx)
+    | Or.inr (Or.inr Hy), Hz, Or.inl ⟨Hr, Hyz⟩ =>
+      Or.inl ⟨Hr, by simp only [Hy, add_zero, zero_add] at *; exact Hyz⟩
+    | Or.inr (Or.inr Hy), _, Or.inr (Or.inr Hz) => by simp [Hy, Hz]
+    | Or.inr (Or.inr Hy), _, Or.inr (Or.inl Hxy) => by rw [<-Hxy]; simp [Hy]
+
+theorem ResourceAlgebra.transparentAlgebra_int
+  (T: Type u) [R: ResourceAlgebra T]
+  : R.transparentAlgebra ⟨true, true⟩ = R
+  := ResourceAlgebra.ext _ _ rfl
+    (λ_ _ => ⟨λ
+      | Or.inl H => H.2
+      | Or.inr rfl => le_refl _,
+      λH => Or.inl ⟨rfl, H⟩⟩)
+    (λ_ _ => ⟨λ
+      | Or.inl H => H.2
+      | Or.inr (Or.inl H) => H ▸ R.valid_id _
+      | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _),
+      λH => Or.inl ⟨rfl, H⟩⟩)
+
+theorem ResourceAlgebra.transparentAlgebra_rel
+  (T: Type u) [R: ResourceAlgebra T]
+  : R.transparentAlgebra ⟨false, true⟩ = R.relevantAlgebra
+  := ResourceAlgebra.ext _ _ rfl
+    (λ_ _ => ⟨λ
+      | Or.inl H => by cases H.1
+      | Or.inr rfl => rfl, λ| rfl => Or.inr rfl⟩)
+    (λ_ _ => ⟨λ
+      | Or.inl H => H.2
+      | Or.inr (Or.inl H) => H ▸ R.valid_id _
+      | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _),
+      λH => Or.inl ⟨rfl, H⟩⟩)
+
+theorem ResourceAlgebra.transparentAlgebra_aff
+  (T: Type u) [R: ResourceAlgebra T]
+  : R.transparentAlgebra ⟨true, false⟩ = R.affineAlgebra
+  := ResourceAlgebra.ext _ _ rfl
+    (λ_ _ => ⟨λ
+      | Or.inl H => H.2
+      | Or.inr rfl => le_refl _,
+      λH => Or.inl ⟨rfl, H⟩⟩)
+    (λ_ _ => ⟨λ
+      | Or.inl H => by cases H.1
+      | Or.inr H => H,
+      Or.inr⟩)
+
+theorem ResourceAlgebra.transparentAlgebra_lin
+  (T: Type u) [R: ResourceAlgebra T]
+  : R.transparentAlgebra ⟨false, false⟩ = ResourceAlgebra.linearAlgebra T
+  := ResourceAlgebra.ext _ _ rfl
+    (λ_ _ => ⟨λ
+      | Or.inl H => by cases H.1
+      | Or.inr rfl => rfl, λ| rfl => Or.inr rfl⟩)
+    (λ_ _ => ⟨λ
+      | Or.inl H => by cases H.1
+      | Or.inr H => H,
+      Or.inr⟩)
+
+theorem ResourceAlgebra.transparentSubalgebra'
+  (T: Type u) [R: ResourceAlgebra T]
+  : (q: Transparency) -> (R.transparentAlgebra' q).Subalgebra R
   | ⟨true, true⟩ => Subalgebra.refl R
   | ⟨true, false⟩ => R.affineSubalgebra
   | ⟨false, true⟩ => R.relevantSubalgebra
   | ⟨false, false⟩ => R.linearSubalgebra
+
+theorem ResourceAlgebra.transparentAlgebra_char
+  (T: Type u) [R: ResourceAlgebra T]
+  : (q: Transparency) -> R.transparentAlgebra q = R.transparentAlgebra' q
+  | ⟨true, true⟩ => R.transparentAlgebra_int
+  | ⟨true, false⟩ => R.transparentAlgebra_aff
+  | ⟨false, true⟩ => R.transparentAlgebra_rel
+  | ⟨false, false⟩ => R.transparentAlgebra_lin
+
+theorem ResourceAlgebra.transparentSubalgebra
+  (T: Type u) [R: ResourceAlgebra T]
+  (q: Transparency): (R.transparentAlgebra q).Subalgebra R
+  := R.transparentAlgebra_char q ▸ R.transparentSubalgebra' q
 
 def LinT (_: Transparency) (T: Type u) := T
 
@@ -146,6 +275,7 @@ instance Rel.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
 instance Lin.instResourceAlgebra {T: Type u} [ResourceAlgebra T]
   : ResourceAlgebra (Lin T) := ResourceAlgebra.linearAlgebra T
 
+--TODO: make this into a resource algebra for booleans?
 inductive VarState: Type u
   | ghost
   | value
@@ -223,3 +353,20 @@ instance ResourceAlgebraFamily.instResourceAlgebraFamilyTy
   where
   res := Ty.res
   resourceAlgebra := Ty.resourceAlgebra
+
+def ResourceAlgebra.splits {T: Type u} [ResourceAlgebra T]
+  (x l r: T): Prop := x ≥ l + r ∧ valid l r
+
+def ResourceAlgebra.qsplits {T: Type u} [ResourceAlgebra T]
+  (q: Transparency) (x l r: T): Prop
+  := @splits T (ResourceAlgebra.transparentAlgebra T q) x l r
+
+theorem ResourceAlgebra.qsplits_rel {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: qsplits q x l r -> q.rel ∨ l = 0 ∨ r = 0
+  | ⟨_, Or.inl Hv⟩ => Or.inl Hv.1
+  | ⟨_, Or.inr Hv⟩ => Or.inr Hv
+
+theorem ResourceAlgebra.qsplits_aff {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: qsplits q x l r -> q.aff ∨ l + r = x
+  | ⟨Or.inl H, _⟩ => Or.inl H.1
+  | ⟨Or.inr H, _⟩ => Or.inr H
