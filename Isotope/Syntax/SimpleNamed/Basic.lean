@@ -69,6 +69,8 @@ def Term.wk {N: Type u} {T: Type v} [HasLin T]
     let ⟨_, S, H'⟩ := S.distribute_right H;
     let2 _ S (wk H' a) e
 
+--TODO: wk associativity theorem
+
 inductive SNCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
   | br {Γ Δ Ξ ℓ q n A L}:
@@ -169,4 +171,62 @@ def SNCfg.lwk {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   | cfg_id H => cfg_id (H.comp HK)
   | cfg_def W t => cfg_def (lwk (HK.scons _) W) t
 
---TODO: substitution, et al
+--TODO: wk/lwk associativity theorems
+
+inductive SNSubst' {N: Type u} {T: Type v} (F: Type w) [HasLin T]
+  [InstructionSet F T] (p: Bool)
+  : Ctx N T -> Ctx N T -> Type (max (max u v) w)
+  | nil {Γ Δ} (H: Γ.wk Δ): SNSubst' F p Γ Δ
+  | cons {Θ ΘΓ Θx q x A Γ} (S: Θ.ssplit ΘΓ Θx)
+    (BΓ: SNSubst' F p ΘΓ Γ)
+    (Bx: Term F Θx p A q)
+    : HasLin.lin Θx q -> SNSubst' F p Θ (⟨q, x, A⟩::Γ)
+
+def SNSubst'.wk {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {p} {Θ Γ Δ: Ctx N T}
+  (H: Θ.wk Γ): SNSubst' F p Γ Δ -> SNSubst' F p Θ Δ
+  | nil H' => nil (H.comp H')
+  | cons S BΓ Bx Hx =>
+    let ⟨_, S, H⟩ := S.distribute_left H;
+    cons S (wk H BΓ) Bx Hx
+
+def SNSubst'.source {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {p} {Γ Δ: Ctx N T}
+  (_: SNSubst' F p Γ Δ): Ctx N T
+  := Γ
+
+def SNSubst'.target {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {p} {Γ Δ: Ctx N T}
+  (_: SNSubst' F p Γ Δ): Ctx N T
+  := Δ
+
+def SNSubst {N: Type u} {T: Type v} (F: Type w)
+  [HasLin T] [InstructionSet F T] := @SNSubst' N T F _ _ true
+
+@[match_pattern]
+def SNSubst.nil {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T} (H: Γ.wk Δ)
+  : SNSubst F Γ Δ := SNSubst'.nil H
+
+@[match_pattern]
+def SNSubst.cons {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T]
+  {Θ ΘΓ Θx: Ctx N T} {q x A Γ} (H: Θ.ssplit ΘΓ Θx)
+  (BΓ: SNSubst F ΘΓ Γ) (Bx: Term F Θx true A q)
+  : HasLin.lin Θx q -> SNSubst F Θ (⟨q, x, A⟩::Γ)
+  := SNSubst'.cons H BΓ Bx
+
+def SNSubst.wk {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
+  (H: Θ.wk Γ): SNSubst F Γ Δ -> SNSubst F Θ Δ
+  := SNSubst'.wk H
+
+def SNSubst.source {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T}
+  (_: SNSubst F Γ Δ): Ctx N T
+  := Γ
+
+def SNSubst.target {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T}
+  (_: SNSubst F Γ Δ): Ctx N T
+  := Δ
