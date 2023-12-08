@@ -525,3 +525,34 @@ def Ctx.ssplit.associate_left_tri {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
     ⟨_::Ψ,
       dup Hrel (le_refl _) (le_trans Hr' Hr) Sl,
       dup Hrel Hl (le_trans Hl' Hr) Sr⟩
+
+def Ctx.ssplit.associate_right_tri {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
+  Ctx.ssplit Γ Δ Ξ
+    -> Ctx.ssplit Δ Θ Φ
+    -> (Ψ: _) × Ctx.ssplit Γ Θ Ψ × Ctx.ssplit Ψ Φ Ξ
+  | S, nil => ⟨Γ, list_right Γ, S⟩
+  | left Hl S, left Hl' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨Ψ, left (le_trans Hl' Hl) Sl, Sr⟩
+  | left Hl S, right Hr' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ, right (le_trans Hr' Hl) Sl, sleft _ Sr⟩
+  | left Hl S, dup Hrel Hl' Hr' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ,
+      dup (Var.le.rel Hl Hrel) (le_trans Hl' Hl) (le_trans Hr' Hl) Sl,
+      sleft _ Sr⟩
+  | right Hl S, S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ, right Hl Sl, sright _ Sr⟩
+  | dup Hrel Hl Hr S, left Hl' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ, dup Hrel (le_trans Hl' Hl) Hr Sl, sright _ Sr⟩
+  | dup Hrel Hl Hr S, right Hr' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ, sright _ Sl, dup Hrel (le_trans Hr' Hl) Hr Sr⟩
+  | dup Hrel Hl Hr S, dup Hrel' Hl' Hr' S' =>
+    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    ⟨_::Ψ,
+      dup Hrel (le_trans Hl' Hl) (le_refl _) Sl,
+      dup Hrel (le_trans Hr' Hl) Hr Sr⟩
