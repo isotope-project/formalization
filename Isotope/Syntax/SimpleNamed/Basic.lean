@@ -249,10 +249,22 @@ def SNSubst.target {N: Type u} {T: Type v} {F: Type w}
   (_: SNSubst F Γ Δ): Ctx N T
   := Δ
 
--- def SNSubst.distribute_left {N: Type u} {T: Type v} {F: Type w}
---   [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
---   (σ: SNSubst F Θ Γ): Θ.ssplit (σ.source) (σ.target) Γ
---   := sorry
+-- def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
+--   [HasLin T] [InstructionSet F T] {Θ Γ Δ Ξ: Ctx N T}
+--   : SNSubst F Θ Γ -> Γ.ssplit Δ Ξ ->
+--     (ΘΔ ΘΞ: Ctx N T) × SNSubst F ΘΔ Δ × SNSubst F ΘΞ Ξ × Θ.ssplit ΘΔ ΘΞ
+--   | nil H, S =>
+--     let ⟨Δ', S, H⟩ := S.distribute_left H;
+--     ⟨Δ', Ξ, nil H, nil (Ctx.wk.id _), S⟩
+--   | cons S BΓ Bx H, Ctx.ssplit.left Hl S' =>
+--     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
+--     ⟨sorry, sorry, sorry, sorry, sorry⟩
+--   | cons S BΓ Bx H, Ctx.ssplit.right Hl S' =>
+--     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
+--     ⟨sorry, sorry, sorry, sorry, sorry⟩
+--   | cons S BΓ Bx H, Ctx.ssplit.dup Hrel Hl Hr S' =>
+--     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
+--     ⟨sorry, sorry, sorry, sorry, sorry⟩
 
 -- def Term.subst {N: Type u} {T: Type v} {F: Type w}
 --   [HasLin T] [InstructionSet F T] {Θ Γ: Ctx N T} {p A q}

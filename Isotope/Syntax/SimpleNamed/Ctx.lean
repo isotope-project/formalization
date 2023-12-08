@@ -57,6 +57,42 @@ instance Ctx.instHasLin {N: Type u} {T: Type v} [HasLin T]
   aff Γ := Γ.all HasLin.aff
   rel Γ := Γ.all HasLin.rel
 
+def Ctx.aff {N T} [HasLin T] (Γ: Ctx N T) := HasLin.aff Γ
+def Ctx.rel {N T} [HasLin T] (Γ: Ctx N T) := HasLin.rel Γ
+def Ctx.lin {N T} [HasLin T] (Γ: Ctx N T) (q: Transparency)
+  := HasLin.lin Γ q
+
+def Ctx.aff.head {N T} [HasLin T] {Γ: Ctx N T} {v} (H: aff (v::Γ)): HasLin.aff v
+  := by
+    simp only [aff, HasLin.aff, List.all_cons, Bool.and_eq_true] at *
+    exact H.1
+def Ctx.aff.tail {N T} [HasLin T] {Γ: Ctx N T} {v} (H: aff (v::Γ)): Γ.aff
+  := by
+    simp only [aff, HasLin.aff, List.all_cons, Bool.and_eq_true] at H
+    exact H.2
+def Ctx.rel.head {N T} [HasLin T] {Γ: Ctx N T} {v} (H: rel (v::Γ)): HasLin.rel v
+  := by
+    simp only [rel, HasLin.rel, List.all_cons, Bool.and_eq_true] at *
+    exact H.1
+def Ctx.rel.tail {N T} [HasLin T] {Γ: Ctx N T} {v} (H: rel (v::Γ)): Γ.rel
+  := by
+    simp only [rel, HasLin.rel, List.all_cons, Bool.and_eq_true] at H
+    exact H.2
+def Ctx.lin.head {N T} [HasLin T] {Γ: Ctx N T} {v} {q} (H: lin (v::Γ) q)
+  : HasLin.lin v q
+  := by
+    simp only [
+      lin, HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq]
+      at *
+    exact ⟨λHa => aff.head (H.1 Ha), λHr => rel.head (H.2 Hr)⟩
+def Ctx.lin.tail {N T} [HasLin T] {Γ: Ctx N T} {v} {q} (H: lin (v::Γ) q)
+  : Γ.lin q
+  := by
+    simp only [
+      lin, HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq]
+      at *
+    exact ⟨λHa => aff.tail (H.1 Ha), λHr => rel.tail (H.2 Hr)⟩
+
 inductive Ctx.subctx {N: Type u} {T: Type v} [HasLin T]
   : Ctx N T -> Ctx N T -> Type (max u v)
   | nil: subctx [] []
@@ -129,6 +165,22 @@ def Ctx.ssplit.sright {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
 def Ctx.ssplit.sdup {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   {v} (Hv: HasLin.rel v): ssplit Γ Δ Ξ -> ssplit (v::Γ) (v::Δ) (v::Ξ)
   := dup Hv (le_refl v) (le_refl v)
+
+def Ctx.ssplit.app_left {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> ssplit (Θ ++ Γ) (Θ ++ Δ) Ξ
+  | [] => S
+  | v::Θ => sleft v (app_left S Θ)
+
+def Ctx.ssplit.app_right {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> ssplit (Θ ++ Γ) Δ (Θ ++ Ξ)
+  | [] => S
+  | v::Θ => sright v (app_right S Θ)
+
+def Ctx.ssplit.app_dup {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> (H: HasLin.rel Θ)
+    -> ssplit (Θ ++ Γ) (Θ ++ Δ) (Θ ++ Ξ)
+  | [], _ => S
+  | _::Θ, H => sdup (rel.head H) (app_dup S Θ (rel.tail H))
 
 def Ctx.ssplit.toSplit {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   : ssplit Γ Δ Ξ → split Γ Δ Ξ
@@ -428,15 +480,7 @@ def Ctx.var.upgrade {N: Type u} {T: Type v} [HasLin T] {Γ: Ctx N T}
 def Ctx.wk.fromAff {N: Type u} {T: Type v} [HasLin T]
   : {Γ: Ctx N T} -> HasLin.aff Γ -> Ctx.wk Γ []
   | [], _ => nil
-  | ⟨q, x, A⟩::Γ, H =>
-    discard
-    (by
-      simp only [HasLin.aff, List.all_cons, Bool.and_eq_true] at *
-      cases H; assumption)
-    (fromAff
-      (by
-        simp only [HasLin.aff, List.all_cons, Bool.and_eq_true] at H
-        cases H; assumption))
+  | _::_, H => discard (aff.head H) (fromAff (aff.tail H))
 
 def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
   {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Ξ.wk [] -> Γ.wk Δ
@@ -444,8 +488,4 @@ def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
   | left Hl HΓ, HΞ
   | dup _ Hl _ HΓ, wk.discard _ HΞ => wk.cons Hl (drop_left HΓ HΞ)
   | right Hr HΓ, wk.discard Hr' HΞ =>
-    wk.discard
-      (by
-        simp only [HasLin.aff, Bool.and_eq_true] at *
-        exact ⟨Hr.2.2.1 Hr'.1, Hr.2.1 ▸ Hr'.2⟩)
-      (drop_left HΓ HΞ)
+    wk.discard (Var.le.aff Hr Hr') (drop_left HΓ HΞ)
