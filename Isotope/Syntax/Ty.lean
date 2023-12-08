@@ -73,3 +73,9 @@ def InstructionSet.inst.upgrade {F: Type u} {T: Type v}
   inst_aff := λ Haff => H.inst_aff (Hq.1 Haff)
   inst_rel := λ Hrel => H.inst_rel (Hq.2 Hrel)
   inst_cen := λ Hcen => H.inst_cen (Hp Hcen)
+
+def HasLin.sublin {T} [HasLin T] {t: T} {l l': Transparency}
+  : l ≥ l' -> HasLin.lin t l -> HasLin.lin t l'
+  | Hl, H => by
+    simp only [lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq] at *
+    exact ⟨H.1 ∘ Hl.1, H.2 ∘ Hl.2⟩

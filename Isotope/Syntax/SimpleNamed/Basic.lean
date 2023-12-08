@@ -182,13 +182,31 @@ inductive SNSubst' {N: Type u} {T: Type v} (F: Type w) [HasLin T]
     (Bx: Term F Θx p A q)
     : HasLin.lin Θx q -> SNSubst' F p Θ (⟨q, x, A⟩::Γ)
 
-def SNSubst'.wk {N: Type u} {T: Type v} {F: Type w}
+def SNSubst'.swk {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {p} {Θ Γ Δ: Ctx N T}
   (H: Θ.wk Γ): SNSubst' F p Γ Δ -> SNSubst' F p Θ Δ
   | nil H' => nil (H.comp H')
   | cons S BΓ Bx Hx =>
     let ⟨_, S, H⟩ := S.distribute_left H;
-    cons S (wk H BΓ) Bx Hx
+    cons S (swk H BΓ) Bx Hx
+
+def SNSubst'.twk {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {p} {Θ Γ Δ: Ctx N T}
+  : Θ.wk Δ -> SNSubst' F p Γ Θ -> SNSubst' F p Γ Δ
+  | W, nil H => nil (H.comp W)
+  | Ctx.wk.cons Hl W, cons S BΓ Bx Hx
+    => cons S (twk W BΓ)
+      (Hl.2.1 ▸ Bx.upgrade (le_refl p) Hl.2.2)
+      (HasLin.sublin Hl.2.2 Hx)
+  | Ctx.wk.discard Hl W, cons S BΓ Bx Hx
+    => twk W (swk (S.drop_left
+      (Ctx.wk.fromAff (by
+        simp only [
+          HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq
+          ] at Hx
+        simp only [HasLin.aff, Bool.and_eq_true] at Hl
+        exact Hx.1 Hl.1
+        ))) BΓ)
 
 def SNSubst'.source {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {p} {Γ Δ: Ctx N T}
@@ -216,10 +234,10 @@ def SNSubst.cons {N: Type u} {T: Type v} {F: Type w}
   : HasLin.lin Θx q -> SNSubst F Θ (⟨q, x, A⟩::Γ)
   := SNSubst'.cons H BΓ Bx
 
-def SNSubst.wk {N: Type u} {T: Type v} {F: Type w}
+def SNSubst.swk {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
   (H: Θ.wk Γ): SNSubst F Γ Δ -> SNSubst F Θ Δ
-  := SNSubst'.wk H
+  := SNSubst'.swk H
 
 def SNSubst.source {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T}
@@ -230,3 +248,18 @@ def SNSubst.target {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T}
   (_: SNSubst F Γ Δ): Ctx N T
   := Δ
+
+-- def SNSubst.distribute_left {N: Type u} {T: Type v} {F: Type w}
+--   [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
+--   (σ: SNSubst F Θ Γ): Θ.ssplit (σ.source) (σ.target) Γ
+--   := sorry
+
+-- def Term.subst {N: Type u} {T: Type v} {F: Type w}
+--   [HasLin T] [InstructionSet F T] {Θ Γ: Ctx N T} {p A q}
+--   (σ: SNSubst F Θ Γ): Term F Θ p A q -> Term F Γ p A q
+--   | var _ X => sorry
+--   | app Hf a => app Hf (subst σ a)
+--   | pair _ S a b => sorry
+--     -- let ⟨_, S, H⟩ := S.distribute_left σ;
+--     -- pair _ S (subst (SNSubst.wk H σ) a) (subst (SNSubst.wk H σ) b)
+--   | _ => sorry

@@ -424,3 +424,28 @@ def Ctx.wk.equiv_right {N: Type u} {T: Type v} [HasLin T] {Γ Δ: Ctx N T}
 def Ctx.var.upgrade {N: Type u} {T: Type v} [HasLin T] {Γ: Ctx N T}
   {v v': Var N T} (H: Γ.var v) (H': v ≥ v'): Γ.var v'
   := Ctx.wk.comp H (Ctx.wk.cons H' (Ctx.wk.nil))
+
+def Ctx.wk.fromAff {N: Type u} {T: Type v} [HasLin T]
+  : {Γ: Ctx N T} -> HasLin.aff Γ -> Ctx.wk Γ []
+  | [], _ => nil
+  | ⟨q, x, A⟩::Γ, H =>
+    discard
+    (by
+      simp only [HasLin.aff, List.all_cons, Bool.and_eq_true] at *
+      cases H; assumption)
+    (fromAff
+      (by
+        simp only [HasLin.aff, List.all_cons, Bool.and_eq_true] at H
+        cases H; assumption))
+
+def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Ξ.wk [] -> Γ.wk Δ
+  | nil, _ => wk.nil
+  | left Hl HΓ, HΞ
+  | dup _ Hl _ HΓ, wk.discard _ HΞ => wk.cons Hl (drop_left HΓ HΞ)
+  | right Hr HΓ, wk.discard Hr' HΞ =>
+    wk.discard
+      (by
+        simp only [HasLin.aff, Bool.and_eq_true] at *
+        exact ⟨Hr.2.2.1 Hr'.1, Hr.2.1 ▸ Hr'.2⟩)
+      (drop_left HΓ HΞ)
