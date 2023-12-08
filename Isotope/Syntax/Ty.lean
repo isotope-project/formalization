@@ -1,6 +1,8 @@
 import Mathlib.Init.Order.Defs
 import Mathlib.Data.Bool.Basic
 import Mathlib.Logic.Equiv.Defs
+import Mathlib.Order.Lattice
+import Aesop
 
 inductive Ty (T: Type u)
 | base (X: T)
@@ -29,7 +31,9 @@ structure Transparency where
   rel: Bool
 
 def HasLin.lin {T} [HasLin T] (t: T) (l: Transparency): Bool
-  := (l.aff → HasLin.aff t) ∧ (l.rel → HasLin.rel t)
+  := (l.aff → aff t) ∧ (l.rel → rel t)
+def HasLin.qtt {T} [HasLin T] (t: T): Transparency
+  := ⟨aff t, rel t⟩
 
 instance Transparency.instHasLin: HasLin Transparency where
   aff := Transparency.aff
@@ -41,6 +45,16 @@ instance Transparency.instPartialOrder: PartialOrder Transparency where
   le_trans _ _ _ H H' := ⟨le_trans H.1 H'.1, le_trans H.2 H'.2⟩
   le_antisymm _ _ H H'
     := mk.injEq _ _ _ _ ▸ ⟨le_antisymm H.1 H'.1, le_antisymm H.2 H'.2⟩
+
+instance Transparency.instLattice: Lattice Transparency where
+  sup l r := ⟨l.aff || r.aff, l.rel || r.rel⟩
+  inf l r := ⟨l.aff && r.aff, l.rel && r.rel⟩
+  le_sup_left := by simp only [instPartialOrder, Bool.instLEBool]; aesop
+  le_sup_right := by simp only [instPartialOrder, Bool.instLEBool]; aesop
+  sup_le := by simp only [instPartialOrder, Bool.instLEBool]; aesop
+  inf_le_left := by simp only [instPartialOrder, Bool.instLEBool]; aesop
+  inf_le_right := by simp only [instPartialOrder, Bool.instLEBool]; aesop
+  le_inf := by simp only [instPartialOrder, Bool.instLEBool]; aesop
 
 theorem Transparency.le.aff {l r: Transparency}
   : l ≤ r → l.aff → r.aff := And.left

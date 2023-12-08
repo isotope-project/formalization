@@ -500,6 +500,14 @@ def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
   | right Hr HΓ, wk.discard Hr' HΞ =>
     wk.discard (Var.le.aff Hr Hr') (drop_left HΓ HΞ)
 
+def Ctx.ssplit.drop_right {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Δ.wk [] -> Γ.wk Ξ
+  | nil, _ => wk.nil
+  | left Hl HΓ, wk.discard Hl' HΞ =>
+    wk.discard (Var.le.aff Hl Hl') (drop_right HΓ HΞ)
+  | right Hr HΓ, HΞ
+  | dup _ _ Hr HΓ, wk.discard _ HΞ => wk.cons Hr (drop_right HΓ HΞ)
+
 def Ctx.ssplit.associate_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ
     -> Ctx.ssplit Ξ Θ Φ

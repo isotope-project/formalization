@@ -180,7 +180,7 @@ inductive SNSubst' {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   | cons {Θ ΘΓ Θx q x A Γ} (S: Θ.ssplit ΘΓ Θx)
     (BΓ: SNSubst' F p ΘΓ Γ)
     (Bx: Term F Θx p A q)
-    : HasLin.lin Θx q -> SNSubst' F p Θ (⟨q, x, A⟩::Γ)
+    : HasLin.lin Θx (q ⊓ HasLin.qtt A) -> SNSubst' F p Θ (⟨q, x, A⟩::Γ)
 
 def SNSubst'.swk {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {p} {Θ Γ Δ: Ctx N T}
@@ -197,15 +197,14 @@ def SNSubst'.twk {N: Type u} {T: Type v} {F: Type w}
   | Ctx.wk.cons Hl W, cons S BΓ Bx Hx
     => cons S (twk W BΓ)
       (Hl.2.1 ▸ Bx.upgrade (le_refl p) Hl.2.2)
-      (HasLin.sublin Hl.2.2 Hx)
+      (HasLin.sublin (Hl.2.1 ▸ (inf_le_inf_right _ Hl.2.2)) Hx)
   | Ctx.wk.discard Hl W, cons S BΓ Bx Hx
     => twk W (swk (S.drop_left
       (Ctx.wk.fromAff (by
         simp only [
           HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq
           ] at Hx
-        simp only [HasLin.aff, Bool.and_eq_true] at Hl
-        exact Hx.1 Hl.1
+        exact Hx.1 Hl
         ))) BΓ)
 
 def SNSubst'.source {N: Type u} {T: Type v} {F: Type w}
@@ -231,13 +230,41 @@ def SNSubst.cons {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T]
   {Θ ΘΓ Θx: Ctx N T} {q x A Γ} (H: Θ.ssplit ΘΓ Θx)
   (BΓ: SNSubst F ΘΓ Γ) (Bx: Term F Θx true A q)
-  : HasLin.lin Θx q -> SNSubst F Θ (⟨q, x, A⟩::Γ)
+  : HasLin.lin Θx (q ⊓ HasLin.qtt A) -> SNSubst F Θ (⟨q, x, A⟩::Γ)
   := SNSubst'.cons H BΓ Bx
+
+def SNSubst.toDrop {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Γ: Ctx N T}
+  : SNSubst F Γ [] -> Γ.wk []
+  | nil H => H
+
+def SNSubst.toTerm {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Γ: Ctx N T} {v}
+  : SNSubst F Γ [v] -> Term F Γ true v.ty v.toTransparency
+  | nil W => Term.var true W
+  | cons S BΓ Bx _ => Bx.wk (S.drop_right BΓ.toDrop)
+
+def SNSubst.scons {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T]
+  {Θ: Ctx N T} {Γ}
+  (BΓ: SNSubst F Θ Γ) (v: Var N T)
+  : SNSubst F (v::Θ) (v::Γ)
+  := BΓ.cons
+    ((Ctx.ssplit.list_left Θ).sright v)
+    (Term.var true (Ctx.wk.id [v]))
+    (by
+      simp only [HasLin.lin, HasLin.aff, Transparency.instLattice, HasLin.rel]
+      aesop)
 
 def SNSubst.swk {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
   (H: Θ.wk Γ): SNSubst F Γ Δ -> SNSubst F Θ Δ
   := SNSubst'.swk H
+
+def SNSubst.twk {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Θ Γ Δ: Ctx N T}
+  : Θ.wk Δ -> SNSubst F Γ Θ -> SNSubst F Γ Δ
+  := SNSubst'.twk
 
 def SNSubst.source {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Γ Δ: Ctx N T}
@@ -262,7 +289,7 @@ def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
     ⟨ΘΨ, ΘΞ, S,
       cons S'.swap BΔ
         (Hl.2.1 ▸ Bx.upgrade (le_refl _) Hl.2.2)
-        (HasLin.sublin Hl.2.2 H),
+        (HasLin.sublin (Hl.2.1 ▸ (inf_le_inf_right _ Hl.2.2)) H),
       BΞ⟩
   | cons S BΓ Bx H, Ctx.ssplit.right Hr S' =>
     let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
@@ -270,7 +297,7 @@ def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
     ⟨ΘΔ, ΘΨ, S, BΔ,
       cons S' BΞ
         (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
-        (HasLin.sublin Hr.2.2 H)⟩
+        (HasLin.sublin (Hr.2.1 ▸ (inf_le_inf_right _ Hr.2.2)) H)⟩
   | cons S BΓ Bx H, Ctx.ssplit.dup Hrel Hl Hr S' =>
     let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
     let ⟨_, _, S1324, S13, S24⟩ := S.distribute_dup_left S'
@@ -278,23 +305,30 @@ def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
         simp only [
           HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq
         ] at H
-        simp only [HasLin.rel, Bool.and_eq_true] at Hrel
-        exact H.2 Hrel.1
+        exact H.2 Hrel
       );
     ⟨_, _, S1324,
       cons S13 BΔ
         (Hl.2.1 ▸ Bx.upgrade (le_refl _) Hl.2.2)
-        (HasLin.sublin Hl.2.2 H),
+        (HasLin.sublin (Hl.2.1 ▸ (inf_le_inf_right _ Hl.2.2)) H),
       cons S24 BΞ
         (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
-        (HasLin.sublin Hr.2.2 H)⟩
+        (HasLin.sublin (Hr.2.1 ▸ (inf_le_inf_right _ Hr.2.2)) H)⟩
 
--- def Term.subst {N: Type u} {T: Type v} {F: Type w}
---   [HasLin T] [InstructionSet F T] {Θ Γ: Ctx N T} {p A q}
---   (σ: SNSubst F Θ Γ): Term F Θ p A q -> Term F Γ p A q
---   | var _ X => sorry
---   | app Hf a => app Hf (subst σ a)
---   | pair _ S a b => sorry
---     -- let ⟨_, S, H⟩ := S.distribute_left σ;
---     -- pair _ S (subst (SNSubst.wk H σ) a) (subst (SNSubst.wk H σ) b)
---   | _ => sorry
+def Term.subst {N: Type u} {T: Type v} {F: Type w}
+  [HasLin T] [InstructionSet F T] {Θ Γ: Ctx N T} {p A q}
+  (σ: SNSubst F Θ Γ): Term F Γ p A q -> Term F Θ p A q
+  | var _ X => (σ.twk X).toTerm.upgrade (by simp) (le_refl _)
+  | app Hf a => app Hf (subst σ a)
+  | pair _ S a b =>
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    pair _ S (subst σΔ a) (subst σΞ b)
+  | unit _ H _ => unit _ (σ.twk H).toDrop _
+  | tt _ H _ => tt _ (σ.twk H).toDrop _
+  | ff _ H _ => ff _ (σ.twk H).toDrop _
+  | let1 _ S a e =>
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    let1 _ S (subst σΞ a) (subst (σΔ.scons _) e)
+  | let2 _ S a e =>
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    let2 _ S (subst σΞ a) (subst ((σΔ.scons _).scons _) e)
