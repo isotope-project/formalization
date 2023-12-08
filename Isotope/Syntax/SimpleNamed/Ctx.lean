@@ -176,6 +176,11 @@ def Ctx.ssplit.list_right {N T} [HasLin T]
   | [] => nil
   | v::Γ => sright v (list_right Γ)
 
+def Ctx.ssplit.list_dup {N T} [HasLin T]
+  : {Γ: Ctx N T} -> Γ.rel -> Γ.ssplit Γ Γ
+  | [], _ => nil
+  | _::_, H => sdup (Ctx.rel.head H) (list_dup (Ctx.rel.tail H))
+
 def Ctx.ssplit.app_left {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
   (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> ssplit (Θ ++ Γ) (Θ ++ Δ) Ξ
   | [] => S
@@ -641,3 +646,11 @@ def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx
       sdup Hrel S1324,
       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+
+def Ctx.ssplit.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
+  (S: Ctx.ssplit Γ Δ Ξ) (S': Ctx.ssplit Δ Θ Φ) (H: Ξ.rel)
+  : (Θ13 Θ24: _)
+      × Ctx.ssplit Γ Θ13 Θ24
+      × Ctx.ssplit Θ13 Θ Ξ
+      × Ctx.ssplit Θ24 Φ Ξ
+  := @permute_1234_1324 N T _ Γ Δ Ξ Θ Φ Ξ Ξ S S' (list_dup H)
