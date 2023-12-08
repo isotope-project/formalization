@@ -252,18 +252,27 @@ def SNSubst.target {N: Type u} {T: Type v} {F: Type w}
 -- def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
 --   [HasLin T] [InstructionSet F T] {Θ Γ Δ Ξ: Ctx N T}
 --   : SNSubst F Θ Γ -> Γ.ssplit Δ Ξ ->
---     (ΘΔ ΘΞ: Ctx N T) × SNSubst F ΘΔ Δ × SNSubst F ΘΞ Ξ × Θ.ssplit ΘΔ ΘΞ
+--     (ΘΔ ΘΞ: Ctx N T) × Θ.ssplit ΘΔ ΘΞ × SNSubst F ΘΔ Δ × SNSubst F ΘΞ Ξ
 --   | nil H, S =>
 --     let ⟨Δ', S, H⟩ := S.distribute_left H;
---     ⟨Δ', Ξ, nil H, nil (Ctx.wk.id _), S⟩
+--     ⟨Δ', Ξ, S, nil H, nil (Ctx.wk.id _)⟩
 --   | cons S BΓ Bx H, Ctx.ssplit.left Hl S' =>
---     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
---     ⟨sorry, sorry, sorry, sorry, sorry⟩
---   | cons S BΓ Bx H, Ctx.ssplit.right Hl S' =>
---     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
---     ⟨sorry, sorry, sorry, sorry, sorry⟩
+--     let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
+--     let ⟨ΘΨ, S, S'⟩ := S.swap.associate_left S';
+--     ⟨ΘΨ, ΘΞ, S,
+--       cons S'.swap BΔ
+--         (Hl.2.1 ▸ Bx.upgrade (le_refl _) Hl.2.2)
+--         (HasLin.sublin Hl.2.2 H),
+--       BΞ⟩
+--   | cons S BΓ Bx H, Ctx.ssplit.right Hr S' =>
+--     let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
+--     let ⟨ΘΨ, S, S'⟩ := S.associate_right S';
+--     ⟨ΘΔ, ΘΨ, S, BΔ,
+--       cons S' BΞ
+--         (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
+--         (HasLin.sublin Hr.2.2 H)⟩
 --   | cons S BΓ Bx H, Ctx.ssplit.dup Hrel Hl Hr S' =>
---     let ⟨ΘΔ, ΘΞ, BΔ, BΞ, S'⟩ := distribute_ssplit BΓ S';
+--     let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
 --     ⟨sorry, sorry, sorry, sorry, sorry⟩
 
 -- def Term.subst {N: Type u} {T: Type v} {F: Type w}

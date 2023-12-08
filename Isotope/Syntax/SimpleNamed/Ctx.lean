@@ -495,64 +495,149 @@ def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
   | right Hr HΓ, wk.discard Hr' HΞ =>
     wk.discard (Var.le.aff Hr Hr') (drop_left HΓ HΞ)
 
-def Ctx.ssplit.associate_left_tri {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
+def Ctx.ssplit.associate_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ
     -> Ctx.ssplit Ξ Θ Φ
     -> (Ψ: _) × Ctx.ssplit Γ Ψ Φ × Ctx.ssplit Ψ Δ Θ
   | S, nil => ⟨Δ, S, list_left Δ⟩
   | left Hl S, S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ, left Hl Sl, sleft _ Sr⟩
   | right Hr S, left Hl S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ, left (le_trans Hl Hr) Sl, sright _ Sr⟩
   | right Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨Ψ, right (le_trans Hr' Hr) Sl, Sr⟩
   | right Hr S, dup Hrel Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ,
       dup (Var.le.rel Hr Hrel) (le_trans Hl' Hr) (le_trans Hr' Hr) Sl,
       sright _ Sr⟩
   | dup Hrel Hl Hr S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ, sleft _ Sl, dup Hrel Hl (le_trans Hl' Hr) Sr⟩
   | dup Hrel Hl Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ, dup Hrel Hl (le_trans Hr' Hr) Sl, sleft _ Sr⟩
   | dup Hrel Hl Hr S, dup Hrel' Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
     ⟨_::Ψ,
       dup Hrel (le_refl _) (le_trans Hr' Hr) Sl,
       dup Hrel Hl (le_trans Hl' Hr) Sr⟩
 
-def Ctx.ssplit.associate_right_tri {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
+def Ctx.ssplit.associate_right {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ
     -> Ctx.ssplit Δ Θ Φ
     -> (Ψ: _) × Ctx.ssplit Γ Θ Ψ × Ctx.ssplit Ψ Φ Ξ
   | S, nil => ⟨Γ, list_right Γ, S⟩
   | left Hl S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨Ψ, left (le_trans Hl' Hl) Sl, Sr⟩
   | left Hl S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ, right (le_trans Hr' Hl) Sl, sleft _ Sr⟩
   | left Hl S, dup Hrel Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ,
       dup (Var.le.rel Hl Hrel) (le_trans Hl' Hl) (le_trans Hr' Hl) Sl,
       sleft _ Sr⟩
   | right Hl S, S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ, right Hl Sl, sright _ Sr⟩
   | dup Hrel Hl Hr S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ, dup Hrel (le_trans Hl' Hl) Hr Sl, sright _ Sr⟩
   | dup Hrel Hl Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ, sright _ Sl, dup Hrel (le_trans Hr' Hl) Hr Sr⟩
   | dup Hrel Hl Hr S, dup Hrel' Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right_tri S S';
+    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
     ⟨_::Ψ,
       dup Hrel (le_trans Hl' Hl) (le_refl _) Sl,
       dup Hrel (le_trans Hr' Hl) Hr Sr⟩
+
+def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
+  Ctx.ssplit Γ Δ Ξ
+    -> Ctx.ssplit Δ Θ1 Θ2
+    -> Ctx.ssplit Ξ Θ3 Θ4
+    -> (Θ13 Θ24: _)
+      × Ctx.ssplit Γ Θ13 Θ24
+      × Ctx.ssplit Θ13 Θ1 Θ3
+      × Ctx.ssplit Θ24 Θ2 Θ4
+  | nil, nil, nil => ⟨[], [], nil, nil, nil⟩
+  | left Hl SΓ, left Hl' S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24, left Hl S1324, left Hl' S13, S24⟩
+  | left Hl SΓ, right Hr' S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24, right Hl S1324, S13, left Hr' S24⟩
+  | left Hl SΓ, dup Hrel Hl' Hr' S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup (Var.le.rel Hl Hrel) S1324,
+      left (le_trans Hl' Hl) S13,
+      left (le_trans Hr' Hl) S24⟩
+  | right Hr SΓ, S12, left Hl' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24, left Hr S1324, right Hl' S13, S24⟩
+  | right Hr SΓ, S12, right Hr' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24, right Hr S1324, S13, right Hr' S24⟩
+  | right Hr SΓ, S12, dup Hrel Hl' Hr' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup (Var.le.rel Hr Hrel) S1324,
+      right (le_trans Hl' Hr) S13,
+      right (le_trans Hr' Hr) S24⟩
+  | dup Hrel Hl Hr SΓ, left Hl' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24,
+      sleft _ S1324,
+      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+      S24⟩
+  | dup Hrel Hl Hr SΓ, right Hr' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      dup Hrel Hr Hl S1324,
+      right Hl'' S13,
+      left Hr' S24⟩
+  | dup Hrel Hl Hr SΓ, dup Hrel' Hl' Hr' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup Hrel S1324,
+      dup (Var.le.rel Hl Hrel') (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+      left (le_trans Hr' Hl) S24⟩
+  | dup Hrel Hl Hr SΓ, left Hl' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24, dup Hrel Hl Hr S1324, left Hl' S13, right Hr'' S24⟩
+  | dup Hrel Hl Hr SΓ, right Hr' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24,
+      sright _ S1324,
+      S13,
+      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+  | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup Hrel S1324,
+      left (le_trans Hl' Hl) S13,
+      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+  | dup Hrel Hl Hr SΓ, left Hl' S12, dup Hrel'' Hl'' Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup Hrel S1324,
+      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+      right (le_trans Hr'' Hr) S24⟩
+  | dup Hrel Hl Hr SΓ, right Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup Hrel S1324,
+      right (le_trans Hl'' Hr) S13,
+      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+  | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sdup Hrel S1324,
+      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
