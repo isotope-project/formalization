@@ -1,3 +1,5 @@
+namespace Abstract
+
 class Splittable.{u, v} (A: Type u): Type (max u v) where
   Splits: A -> A -> A -> Sort v
   splitsSymm {a b c: A}: Splits a b c -> Splits a c b
@@ -125,7 +127,23 @@ def List.Partitions.assoc {A}: {Γ123 Γ12 Γ1 Γ2 Γ3: List A} ->
     let ⟨Γ23, p, p'⟩ := assoc p p'
     ⟨v::Γ23, right v p, right v p'⟩
 
-def Splittable.Partition {A}: Splittable (List A) where
+def List.Partitions.splittable {A}: Splittable (List A) where
   Splits := List.Partitions
   splitsSymm := List.Partitions.symm
   splitsAssoc := List.Partitions.assoc
+
+inductive List.Sublist {A: Type u}
+  : List A -> List A -> Type u
+  | nil: Sublist [] []
+  | cons {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) (l::Δ)
+  | discard {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) Δ
+
+def List.Sublist.trans {A} {Γ Δ Ξ: List A}
+  : List.Sublist Γ Δ -> List.Sublist Δ Ξ -> List.Sublist Γ Ξ
+  | H, nil => H
+  | cons l H, cons _ H'  => cons l (trans H H')
+  | cons l H, discard _ H' | discard l H, H' => discard l (trans H H')
+
+def List.Sublist.weakenable {A}: Weakenable (List A) where
+  Weakens := List.Sublist
+  weakensTrans := List.Sublist.trans
