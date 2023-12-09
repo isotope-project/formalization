@@ -4,6 +4,12 @@ class Splittable.{u, v} (A: Type u): Type (max u v) where
   splitsAssoc {a123 a12 a1 a2 a3: A}:
     Splits a123 a12 a3 -> Splits a12 a1 a2 ->
       (a23: A) ×' (_: Splits a123 a1 a23) ×' (Splits a23 a2 a3)
+  splitsAssoc_inv {a123 a23 a1 a2 a3}:
+    Splits a123 a1 a23 -> Splits a23 a2 a3 ->
+      (a12: A) ×' (_: Splits a123 a12 a3) ×' (Splits a12 a1 a2)
+      := λS1 S2 =>
+        let ⟨a21, S1, S2⟩ := splitsAssoc (splitsSymm S1) (splitsSymm S2)
+        ⟨a21, splitsSymm S1, splitsSymm S2⟩
 
 class Weakenable.{u, v} (A: Type u) where
   Weakens: A -> A -> Sort v
