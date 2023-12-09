@@ -57,11 +57,23 @@ def List.Partitions.symm {A} {Γ Δ Ξ: List A}:
   | left l p => right l (symm p)
   | right r p => left r (symm p)
 
--- def List.Partitions.assoc {A}: {Γ123 Γ12 Γ1 Γ2 Γ3: List A} ->
---   List.Partitions Γ123 Γ12 Γ3 -> List.Partitions Γ12 Γ1 Γ2 ->
---       (Γ23: List A)
---       ×' (_: List.Partitions Γ123 Γ1 Γ23)
---       ×' (List.Partitions Γ23 Γ2 Γ3)
---   | _, _, _, _, _, nil, nil => ⟨[], nil, nil⟩
---   | _, _, _, _, _, left l p, _ => sorry
---   | _, _, _, _, _, right r p, _ => sorry
+def List.Partitions.assoc {A}: {Γ123 Γ12 Γ1 Γ2 Γ3: List A} ->
+  List.Partitions Γ123 Γ12 Γ3 -> List.Partitions Γ12 Γ1 Γ2 ->
+      (Γ23: List A)
+      ×' (_: List.Partitions Γ123 Γ1 Γ23)
+      ×' (List.Partitions Γ23 Γ2 Γ3)
+  | _, _, _, _, _, nil, nil => ⟨[], nil, nil⟩
+  | _, _, _, _, _, left v p, left _ p' =>
+    let ⟨Γ23, p, p'⟩ := assoc p p'
+    ⟨Γ23, left v p, p'⟩
+  | _, _, _, _, _, left v p, right _ p' =>
+    let ⟨Γ23, p, p'⟩ := assoc p p'
+    ⟨v::Γ23, right v p, left v p'⟩
+  | _, _, _, _, _, right v p, p' =>
+    let ⟨Γ23, p, p'⟩ := assoc p p'
+    ⟨v::Γ23, right v p, right v p'⟩
+
+def Splittable.Partition {A}: Splittable (List A) where
+  Splits := List.Partitions
+  splitsSymm := List.Partitions.symm
+  splitsAssoc := List.Partitions.assoc
