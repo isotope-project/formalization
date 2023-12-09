@@ -9,12 +9,42 @@ class Weakenable.{u, v} (A: Type u) where
   Weakens: A -> A -> Sort v
   weakensTrans: {a b c: A} -> Weakens a b -> Weakens b c -> Weakens a c
 
-class Discardable.{u, v} (A: Type u) where
-  Drops: A -> Sort v
+class Resource.{u, v} (A: Type u)
+  extends Splittable.{u, v} A, Weakenable.{u, v} A
+  where
+  weakenLeft {a a' b c: A}: Weakens a' a -> Splits a b c
+    -> (b': A) ×' (_: Splits a' b' c) ×' (Weakens b' b)
+  weakenRight {a a' b c: A}: Weakens a' a -> Splits a b c
+    -> (c': A) ×' (_: Splits a' b c') ×' (Weakens c' c)
+    := λW S =>
+      let ⟨c', Ss, W⟩ := weakenLeft W (splitsSymm S);
+      ⟨c', splitsSymm Ss, W⟩
+
+class WeakeningSplit.{u, v} (A: Type u)
+  extends Resource.{u, v} A
+  where
+  weakenSplit {a a' b b' c c': A}: Weakens a' a -> Splits a b c -> Splits a' b c
+
+def TRes (A: Type u) := A
+
+instance TRes.instSplittable: Splittable (TRes A) where
+  Splits a b c := b = a ∧ c = a
+  splitsSymm | ⟨_, _⟩ => by simp [*]
+  splitsAssoc | ⟨_, _⟩, ⟨_, _⟩ => ⟨_, ⟨by simp [*], rfl⟩, by simp [*]⟩
+
+instance TRes.instWeakenable: Weakenable (TRes A) where
+  Weakens a b := b = a
+  weakensTrans | rfl, rfl => rfl
+
+instance TRes.instResource: Resource (TRes A) where
+  weakenLeft | rfl, ⟨_, rfl⟩ => ⟨_, ⟨by simp [*], rfl⟩, rfl⟩
+  weakenRight | rfl, ⟨_, rfl⟩ => ⟨_, ⟨by simp [*], rfl⟩, rfl⟩
+
+instance TRes.instWeakeningSplit: WeakeningSplit (TRes A) where
+  weakenSplit | rfl, ⟨_, rfl⟩ => ⟨by simp [*], rfl⟩
 
 open Splittable
 open Weakenable
-open Discardable
 
 inductive Splittable.ElementwiseSplit.{u, v} {A: Type u} [Splittable.{u, v} A]
   : List A -> List A -> List A -> Sort (max (u+1) v)
@@ -41,9 +71,25 @@ def Splittable.ElementwiseSplit.assoc
 
 def Splitabble.Elementwise.{u, v} {A: Type u} [Splittable.{u, v} A]
   : Splittable.{u, max (u+1) v} (List A) where
-  Splits := Splittable.ElementwiseSplit.{u, v}
-  splitsSymm := Splittable.ElementwiseSplit.symm
-  splitsAssoc := Splittable.ElementwiseSplit.assoc
+  Splits := ElementwiseSplit.{u, v}
+  splitsSymm := ElementwiseSplit.symm
+  splitsAssoc := ElementwiseSplit.assoc
+
+inductive Weakenable.ElementwiseWeaken.{u, v} {A: Type u} [Weakenable.{u, v} A]
+  : List A -> List A -> Sort (max (u+1) v)
+  | nil: ElementwiseWeaken [] []
+  | cons {a b: A} {Γ Δ: List A}: Weakens a b -> ElementwiseWeaken Γ Δ ->
+    ElementwiseWeaken (a :: Γ) (b :: Δ)
+
+def Weakenable.ElementwiseWeaken.trans {A} [Weakenable A] {Γ Δ Ξ: List A}:
+  ElementwiseWeaken Γ Δ -> ElementwiseWeaken Δ Ξ -> ElementwiseWeaken Γ Ξ
+  | nil, nil => nil
+  | cons l Wl, cons r Wr => cons (weakensTrans l r) (trans Wl Wr)
+
+def Weakenable.Elementwise.{u, v} {A: Type u} [Weakenable.{u, v} A]
+  : Weakenable.{u, max (u+1) v} (List A) where
+  Weakens := ElementwiseWeaken.{u, v}
+  weakensTrans := ElementwiseWeaken.trans
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
