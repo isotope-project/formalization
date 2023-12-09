@@ -5,10 +5,6 @@ open InstructionSet
 
 namespace SimpleNamed
 
-inductive GCtx (N: Type u) (T: Type v) [HasLin T]
-  | df (Γ: Ctx N T)
-  | cf (L: LCtx N T)
-
 inductive Result (N: Type u) (T: Type v) [HasLin T]
   | term (x: Var N T)
   | label (L: LCtx N T)
@@ -71,44 +67,60 @@ def Term.wk {N: Type u} {T: Type v} [HasLin T]
 
 --TODO: wk associativity theorem
 
+inductive GCtx (N: Type u) (T: Type v)
+  | df (Γ: Ctx N T)
+  | cf (L: LCtx N T)
+
+inductive GKind
+  | df
+  | cf
+
+open GKind
+
+def GKind.Ctx (N: Type u) (T: Type v)
+  : GKind -> Type (max u v)
+  | df => SimpleNamed.Ctx N T
+  | cf => LCtx N T
+
 inductive SNCfg {N: Type u} {T: Type v} (F: Type w) [HasLin T]
-  [InstructionSet F T]: GCtx N T -> LCtx N T -> Type (max (max u v) w)
+  [InstructionSet F T]:
+    (k: GKind) -> k.Ctx N T -> LCtx N T -> Type (max (max u v) w)
   | br {Γ Δ Ξ ℓ q n A L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ true A q ->
     L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩ ->
-    SNCfg F (GCtx.df Γ) L
+    SNCfg F df Γ L
   | ite {Γ Δ Ξ L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ true Ty.bool q ->
-    SNCfg F (GCtx.df Δ) L ->
-    SNCfg F (GCtx.df Δ) L ->
-    SNCfg F (GCtx.df Γ) L
+    SNCfg F df Δ L ->
+    SNCfg F df Δ L ->
+    SNCfg F df Γ L
   | let1 {Γ Δ Ξ p q x A L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ p A q ->
-    SNCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::Δ)) L ->
-    SNCfg F (GCtx.df Γ) L
+    SNCfg F df (⟨⟨true, true⟩, x, A⟩::Δ) L ->
+    SNCfg F df Γ L
   | let2 {Γ Δ Ξ p q x A y B L}:
     Γ.ssplit Δ Ξ ->
     Term F Ξ p (Ty.tensor A B) q ->
-    SNCfg F (GCtx.df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ)) L ->
-    SNCfg F (GCtx.df Γ) L
+    SNCfg F df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ) L ->
+    SNCfg F df Γ L
   | cfg {Γ L K}:
-    SNCfg F (GCtx.df Γ) L ->
-    SNCfg F (GCtx.cf L) K ->
-    SNCfg F (GCtx.df Γ) K
+    SNCfg F df Γ L ->
+    SNCfg F cf L K ->
+    SNCfg F df Γ K
   | cfg_id {L}:
     LCtx.lwk L K ->
-    SNCfg F (GCtx.cf L) K
+    SNCfg F cf L K
   | cfg_def {Γ ℓ q x A L K}:
-    SNCfg F (GCtx.cf L) (⟨ℓ, Γ, ⟨q, x, A⟩⟩::K) ->
-    SNCfg F (GCtx.df Γ) L ->
-    SNCfg F (GCtx.cf L) K
+    SNCfg F cf L (⟨ℓ, Γ, ⟨q, x, A⟩⟩::K) ->
+    SNCfg F df Γ L ->
+    SNCfg F cf L K
 
 def SNCfg.intermediate_list {N: Type u} {T: Type v} {F: Type w} [HasLin T]
-  [InstructionSet F T] {G: GCtx N T} {L}
-  (H: SNCfg F G L)
+  [InstructionSet F T] {k} {G: k.Ctx N T} {L}
+  (H: SNCfg F k G L)
   : List N :=
   match H with
   | br _ _ _ => []
@@ -125,44 +137,35 @@ def SNCfg.intermediate_list {N: Type u} {T: Type v} {F: Type w} [HasLin T]
 --TODO: make into an inductive?
 def SNCfg.ssa {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   [InstructionSet F T]
-  : {G: GCtx N T} -> {L: _} -> SNCfg F G L -> Prop
-  | GCtx.df Γ, _, s => (Γ.names ++ s.intermediate_list).Nodup
-  | GCtx.cf _, _, cfg_id _ => true
-  | GCtx.cf _, _, @cfg_def _ _ _ _ _ Γ ℓ _ x _ _ _ W t =>
+  : {k: GKind} -> {G: k.Ctx N T} -> {L: _} -> SNCfg F k G L -> Prop
+  | df, Γ, _, s => (Γ.names ++ s.intermediate_list).Nodup
+  | cf, _, _, cfg_id _ => true
+  | cf, _, _, @cfg_def _ _ _ _ _ Γ ℓ _ x _ _ _ W t =>
     W.ssa
     ∧ t.ssa
     ∧ (Γ.names ++ ℓ::x::(W.intermediate_list ++ t.intermediate_list)).Nodup
 
-inductive GCtx.wk {N: Type u} {T: Type v} [HasLin T]
-  : GCtx N T -> GCtx N T -> Type (max u v)
-  | df {Γ Δ}: Γ.wk Δ -> GCtx.wk (GCtx.df Γ) (GCtx.df Δ)
-
-def SNCfg.wk' {N: Type u} {T: Type v} {F: Type w} [HasLin T]
-  [InstructionSet F T]
-  {Γ Δ: GCtx N T} {L: LCtx N T}: Γ.wk Δ -> SNCfg F Δ L -> SNCfg F Γ L
-  | GCtx.wk.df H, br S a ℓ =>
-    let ⟨_, S, H'⟩ := S.distribute_right H;
-    br S (a.wk H') ℓ
-  | GCtx.wk.df H, ite S e s t =>
-    let ⟨_, S, H'⟩ := S.distribute_right H;
-    ite S (e.wk H') s t
-  | GCtx.wk.df H, let1 S a t =>
-    let ⟨_, S, H'⟩ := S.distribute_right H;
-    let1 S (a.wk H') t
-  | GCtx.wk.df H, let2 S a t =>
-    let ⟨_, S, H'⟩ := S.distribute_right H;
-    let2 S (a.wk H') t
-  | GCtx.wk.df H, cfg t W => cfg (t.wk' (GCtx.wk.df H)) W
-
 def SNCfg.wk {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   [InstructionSet F T]
-  {Γ Δ: Ctx N T} {L: LCtx N T} (H: Γ.wk Δ)
-  : SNCfg F (GCtx.df Δ) L -> SNCfg F (GCtx.df Γ) L
-  := SNCfg.wk' (GCtx.wk.df H)
+  {Γ Δ: Ctx N T} {L: LCtx N T}: Γ.wk Δ -> SNCfg F df Δ L -> SNCfg F df Γ L
+  | H, br S a ℓ =>
+    let ⟨_, S, H'⟩ := S.distribute_right H;
+    br S (a.wk H') ℓ
+  | H, ite S e s t =>
+    let ⟨_, S, H'⟩ := S.distribute_right H;
+    ite S (e.wk H') s t
+  | H, let1 S a t =>
+    let ⟨_, S, H'⟩ := S.distribute_right H;
+    let1 S (a.wk H') t
+  | H, let2 S a t =>
+    let ⟨_, S, H'⟩ := S.distribute_right H;
+    let2 S (a.wk H') t
+  | H, cfg t W => cfg (t.wk H) W
 
 def SNCfg.lwk {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   [InstructionSet F T]
-  {G: GCtx N T} {L K: LCtx N T} (HK: L.lwk K): SNCfg F G L -> SNCfg F G K
+  {k} {G: k.Ctx N T} {L K: LCtx N T} (HK: L.lwk K)
+  : SNCfg F k G L -> SNCfg F k G K
   | br S a ℓ => br S a (ℓ.comp HK)
   | ite S e s t => ite S e (lwk HK s) (lwk HK t)
   | let1 S a t => let1 S a (lwk HK t)
@@ -172,6 +175,11 @@ def SNCfg.lwk {N: Type u} {T: Type v} {F: Type w} [HasLin T]
   | cfg_def W t => cfg_def (lwk (HK.scons _) W) t
 
 --TODO: wk/lwk associativity theorems
+
+--TODO: SBlk = SNCfg df
+--TODO: SCfg = SNCfg cf
+
+--TODO: factor out substitution?
 
 inductive SNSubst' {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T] (p: Bool)
@@ -315,6 +323,12 @@ def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
         (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
         (HasLin.sublin (Hr.2.1 ▸ (inf_le_inf_right _ Hr.2.2)) H)⟩
 
+--TODO: "subsubst w.r.t"
+
+--TODO: "subsubst distr"
+
+--TODO: "selector rune"
+
 def Term.subst {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Θ Γ: Ctx N T} {p A q}
   (σ: SNSubst F Θ Γ): Term F Γ p A q -> Term F Θ p A q
@@ -332,3 +346,21 @@ def Term.subst {N: Type u} {T: Type v} {F: Type w}
   | let2 _ S a e =>
     let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
     let2 _ S (subst σΞ a) (subst ((σΔ.scons _).scons _) e)
+
+inductive SNHLSubst {N: Type u} {T: Type v} (F: Type w)
+  [HasLin T] [InstructionSet F T] : LCtx N T -> LCtx N T
+    -> Type (max (max u v) w)
+  | nil: SNHLSubst F [] []
+  | cons {L K ℓ A Γ Δ}: SNHLSubst F L K -> SNSubst F Γ Δ
+    -> SNHLSubst F (⟨ℓ, Γ, A⟩::L) (⟨ℓ, Δ, A⟩::K)
+
+--TODO: "subhlbsubst w.r.t"
+
+--TODO: CFG substitution theorem
+
+inductive SNLSubst {N: Type u} {T: Type v} (F: Type w)
+  [HasLin T] [InstructionSet F T]: LCtx N T -> LCtx N T
+    -> Type (max (max u v) w)
+  | nil (K): SNLSubst F [] K
+  -- | cons {L K ℓ A Γ Δ}: SNLSubst F L K ->
+  --   -> SNLSubst F (⟨ℓ, Γ, A⟩::L) (⟨ℓ, Δ, A⟩::K)
