@@ -14,5 +14,6 @@ import Isotope.Substructural.Category
 import Isotope.Utils.Wk
 import Isotope.Trace.Basic
 import Isotope.ResourceAlgebra
+import Isotope.Syntax.Ctx.Basic
 import Isotope.Syntax.Untyped
 import Isotope.Syntax.SimpleNamed
