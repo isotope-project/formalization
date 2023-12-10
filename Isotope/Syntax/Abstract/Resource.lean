@@ -1,5 +1,7 @@
 namespace Abstract
 
+--TODO: split vs ssplit?
+
 class Splittable.{u, v} (A: Type u): Type (max u v) where
   Splits: A -> A -> A -> Sort v
   splitsSymm {a b c: A}: Splits a b c -> Splits a c b
@@ -27,24 +29,24 @@ class Joinable.{u, v} (A: Type u): Type (max u v) where
         ⟨a21, joinsSymm J1, joinsSymm J2⟩
 
 class Weakenable.{u, v} (A: Type u) where
-  Weakens: A -> A -> Sort v
-  weakensTrans: {a b c: A} -> Weakens a b -> Weakens b c -> Weakens a c
+  Wks: A -> A -> Sort v
+  wksTrans: {a b c: A} -> Wks a b -> Wks b c -> Wks a c
 
 class SplitWk.{u, v} (A: Type u)
   extends Splittable.{u, v} A, Weakenable.{u, v} A
   where
-  weakenLeft {a a' b c: A}: Weakens a' a -> Splits a b c
-    -> (b': A) ×' (_: Splits a' b' c) ×' (Weakens b' b)
-  weakenRight {a a' b c: A}: Weakens a' a -> Splits a b c
-    -> (c': A) ×' (_: Splits a' b c') ×' (Weakens c' c)
+  wksLeft {a a' b c: A}: Wks a' a -> Splits a b c
+    -> (b': A) ×' (_: Splits a' b' c) ×' (Wks b' b)
+  wksRight {a a' b c: A}: Wks a' a -> Splits a b c
+    -> (c': A) ×' (_: Splits a' b c') ×' (Wks c' c)
     := λW S =>
-      let ⟨c', Ss, W⟩ := weakenLeft W (splitsSymm S);
+      let ⟨c', Ss, W⟩ := wksLeft W (splitsSymm S);
       ⟨c', splitsSymm Ss, W⟩
 
 class CSplitWk.{u, v} (A: Type u)
   extends SplitWk.{u, v} A
   where
-  weakenSplit {a a' b b' c c': A}: Weakens a' a -> Splits a b c -> Splits a' b c
+  wksSplits {a a' b b' c c': A}: Wks a' a -> Splits a b c -> Splits a' b c
 
 def TRes (A: Type u) := A
 
@@ -54,15 +56,15 @@ instance TRes.instSplittable {A}: Splittable (TRes A) where
   splitsAssoc | ⟨_, _⟩, ⟨_, _⟩ => ⟨_, ⟨by simp [*], rfl⟩, by simp [*]⟩
 
 instance TRes.instWeakenable {A}: Weakenable (TRes A) where
-  Weakens a b := b = a
-  weakensTrans | rfl, rfl => rfl
+  Wks a b := b = a
+  wksTrans | rfl, rfl => rfl
 
 instance TRes.instResource {A}: SplitWk (TRes A) where
-  weakenLeft | rfl, H => ⟨_, H, rfl⟩
-  weakenRight | rfl, H => ⟨_, H, rfl⟩
+  wksLeft | rfl, H => ⟨_, H, rfl⟩
+  wksRight | rfl, H => ⟨_, H, rfl⟩
 
 instance TRes.instCSplitWk {A}: CSplitWk (TRes A) where
-  weakenSplit | rfl, H => H
+  wksSplits | rfl, H => H
 
 def TWkRes (A: Type u) := A
 
@@ -70,63 +72,67 @@ instance TWkRes.instSplittable {A} [S: Splittable A]
   : Splittable (TWkRes A) := S
 
 instance TWkRes.instWeakenable {A}: Weakenable (TWkRes A) where
-  Weakens a b := b = a
-  weakensTrans | rfl, rfl => rfl
+  Wks a b := b = a
+  wksTrans | rfl, rfl => rfl
 
 instance TWkRes.instResource {A} [Splittable A]: SplitWk (TWkRes A) where
-  weakenLeft | rfl, H => ⟨_, H, rfl⟩
-  weakenRight | rfl, H => ⟨_, H, rfl⟩
+  wksLeft | rfl, H => ⟨_, H, rfl⟩
+  wksRight | rfl, H => ⟨_, H, rfl⟩
 
 instance TWkRes.instCSplitWk {A} [Splittable A]: CSplitWk (TWkRes A) where
-  weakenSplit | rfl, H => H
+  wksSplits | rfl, H => H
 
 open Splittable
 open Weakenable
 
-inductive Splittable.ElementwiseSplit.{u, v} {A: Type u} [Splittable.{u, v} A]
-  : List A -> List A -> List A -> Sort (max (u+1) v)
-  | nil: ElementwiseSplit [] [] []
-  | cons {a b c: A} {Γ Δ Ξ: List A}: Splits a b c -> ElementwiseSplit Γ Δ Ξ ->
-    ElementwiseSplit (a :: Γ) (b :: Δ) (c :: Ξ)
+def Elementwise (A: Type u) := List A
 
-def Splittable.ElementwiseSplit.symm {A} [Splittable A] {Γ Δ Ξ: List A}:
-  ElementwiseSplit Γ Δ Ξ -> ElementwiseSplit Γ Ξ Δ
+inductive Elementwise.Splits.{u, v} {A: Type u} [S: Splittable.{u, v} A]
+  : Elementwise A -> Elementwise A -> Elementwise A -> Sort (max (u+1) v)
+  | nil: Splits [] [] []
+  | cons {a b c: A} {Γ Δ Ξ: List A}: S.Splits a b c -> Splits Γ Δ Ξ ->
+    Splits (a :: Γ) (b :: Δ) (c :: Ξ)
+
+def Elementwise.Splits.symm {A} [Splittable A] {Γ Δ Ξ: Elementwise A}:
+  Splits Γ Δ Ξ -> Splits Γ Ξ Δ
   | nil => nil
   | cons s sl => cons (splitsSymm s) (symm sl)
 
-def Splittable.ElementwiseSplit.assoc
-  {A} [Splittable A] {Γ123 Γ12 Γ1 Γ2 Γ3: List A}:
-  ElementwiseSplit Γ123 Γ12 Γ3 -> ElementwiseSplit Γ12 Γ1 Γ2 ->
+def Elementwise.Splits.assoc
+  {A} [Splittable A] {Γ123 Γ12 Γ1 Γ2 Γ3: Elementwise A}:
+  Splits Γ123 Γ12 Γ3 -> Splits Γ12 Γ1 Γ2 ->
       (Γ23: List A)
-      ×' (_: ElementwiseSplit Γ123 Γ1 Γ23)
-      ×' (ElementwiseSplit Γ23 Γ2 Γ3)
+      ×' (_: Splits Γ123 Γ1 Γ23)
+      ×' (Splits Γ23 Γ2 Γ3)
   | nil, nil => ⟨[], nil, nil⟩
   | cons s sl, cons s' sl' =>
     let ⟨a23, s, s'⟩ := splitsAssoc s s'
     let ⟨Γ23, sl, sl'⟩ := assoc sl sl'
     ⟨a23::Γ23, cons s sl, cons s' sl'⟩
 
-def Splitabble.Elementwise.{u, v} {A: Type u} [Splittable.{u, v} A]
-  : Splittable.{u, max (u+1) v} (List A) where
-  Splits := ElementwiseSplit.{u, v}
-  splitsSymm := ElementwiseSplit.symm
-  splitsAssoc := ElementwiseSplit.assoc
+instance Elementwise.instSplittable {A: Type u} [Splittable.{u, v} A]
+  : Splittable.{u, max (u+1) v} (Elementwise A) where
+  Splits := Splits.{u, v}
+  splitsSymm := Splits.symm
+  splitsAssoc := Splits.assoc
 
-inductive Weakenable.ElementwiseWeaken.{u, v} {A: Type u} [Weakenable.{u, v} A]
-  : List A -> List A -> Sort (max (u+1) v)
-  | nil: ElementwiseWeaken [] []
-  | cons {a b: A} {Γ Δ: List A}: Weakens a b -> ElementwiseWeaken Γ Δ ->
-    ElementwiseWeaken (a :: Γ) (b :: Δ)
+inductive Elementwise.Wks.{u, v} {A: Type u} [W: Weakenable.{u, v} A]
+  : Elementwise A -> Elementwise A -> Sort (max (u+1) v)
+  | nil: Wks [] []
+  | cons {a b: A} {Γ Δ: Elementwise A}
+    : W.Wks a b -> Wks Γ Δ -> Wks (a :: Γ) (b :: Δ)
 
-def Weakenable.ElementwiseWeaken.trans {A} [Weakenable A] {Γ Δ Ξ: List A}:
-  ElementwiseWeaken Γ Δ -> ElementwiseWeaken Δ Ξ -> ElementwiseWeaken Γ Ξ
+def Elementwise.Wks.trans {A} [Weakenable A] {Γ Δ Ξ: List A}:
+  Wks Γ Δ -> Wks Δ Ξ -> Wks Γ Ξ
   | nil, nil => nil
-  | cons l Wl, cons r Wr => cons (weakensTrans l r) (trans Wl Wr)
+  | cons l Wl, cons r Wr => cons (wksTrans l r) (trans Wl Wr)
 
-def Weakenable.Elementwise.{u, v} {A: Type u} [Weakenable.{u, v} A]
+def Elementwise.instWeakenable {A: Type u} [Weakenable.{u, v} A]
   : Weakenable.{u, max (u+1) v} (List A) where
-  Weakens := ElementwiseWeaken.{u, v}
-  weakensTrans := ElementwiseWeaken.trans
+  Wks := Elementwise.Wks.{u, v}
+  wksTrans := Elementwise.Wks.trans
+
+--TODO: elementwise resource theorems
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
@@ -179,5 +185,7 @@ def List.Sublist.trans {A} {Γ Δ Ξ: List A}
   | cons l H, discard _ H' | discard l H, H' => discard l (trans H H')
 
 def List.Sublist.weakenable {A}: Weakenable (List A) where
-  Weakens := List.Sublist
-  weakensTrans := List.Sublist.trans
+  Wks := List.Sublist
+  wksTrans := List.Sublist.trans
+
+--TODO: sublist/partition theorems? should this be the instance for List?
