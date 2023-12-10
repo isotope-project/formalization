@@ -30,7 +30,8 @@ class Joinable.{u, v} (A: Type u): Type (max u v) where
 
 class Weakenable.{u, v} (A: Type u) where
   Wks: A -> A -> Sort v
-  wksTrans: {a b c: A} -> Wks a b -> Wks b c -> Wks a c
+  wksId (a: A): Wks a a
+  wksTrans {a b c: A}: Wks a b -> Wks b c -> Wks a c
 
 class SplitWk.{u, v} (A: Type u)
   extends Splittable.{u, v} A, Weakenable.{u, v} A
@@ -47,6 +48,8 @@ class CSplitWk.{u, v} (A: Type u)
   extends SplitWk.{u, v} A
   where
   wksSplits {a a' b b' c c': A}: Wks a' a -> Splits a b c -> Splits a' b c
+  splitsWks {a b c b' c': A}
+    : Splits a b c -> Wks b b' -> Wks c c' -> Splits a b' c'
 
 def TRes (A: Type u) := A
 
@@ -57,6 +60,7 @@ instance TRes.instSplittable {A}: Splittable (TRes A) where
 
 instance TRes.instWeakenable {A}: Weakenable (TRes A) where
   Wks a b := b = a
+  wksId _ := rfl
   wksTrans | rfl, rfl => rfl
 
 instance TRes.instResource {A}: SplitWk (TRes A) where
@@ -65,6 +69,7 @@ instance TRes.instResource {A}: SplitWk (TRes A) where
 
 instance TRes.instCSplitWk {A}: CSplitWk (TRes A) where
   wksSplits | rfl, H => H
+  splitsWks | H, rfl, rfl => H
 
 def TWkRes (A: Type u) := A
 
@@ -73,6 +78,7 @@ instance TWkRes.instSplittable {A} [S: Splittable A]
 
 instance TWkRes.instWeakenable {A}: Weakenable (TWkRes A) where
   Wks a b := b = a
+  wksId _ := rfl
   wksTrans | rfl, rfl => rfl
 
 instance TWkRes.instResource {A} [Splittable A]: SplitWk (TWkRes A) where
@@ -81,6 +87,7 @@ instance TWkRes.instResource {A} [Splittable A]: SplitWk (TWkRes A) where
 
 instance TWkRes.instCSplitWk {A} [Splittable A]: CSplitWk (TWkRes A) where
   wksSplits | rfl, H => H
+  splitsWks | H, rfl, rfl => H
 
 open Splittable
 open Weakenable
@@ -122,7 +129,12 @@ inductive Elementwise.Wks.{u, v} {A: Type u} [W: Weakenable.{u, v} A]
   | cons {a b: A} {Γ Δ: Elementwise A}
     : W.Wks a b -> Wks Γ Δ -> Wks (a :: Γ) (b :: Δ)
 
-def Elementwise.Wks.trans {A} [Weakenable A] {Γ Δ Ξ: List A}:
+def Elementwise.Wks.id {A} [W: Weakenable A]
+  : (Γ: Elementwise A) -> Wks Γ Γ
+  | [] => nil
+  | l::Γ => cons (W.wksId l) (id Γ)
+
+def Elementwise.Wks.trans {A} [Weakenable A] {Γ Δ Ξ: Elementwise A}:
   Wks Γ Δ -> Wks Δ Ξ -> Wks Γ Ξ
   | nil, nil => nil
   | cons l Wl, cons r Wr => cons (wksTrans l r) (trans Wl Wr)
@@ -130,6 +142,7 @@ def Elementwise.Wks.trans {A} [Weakenable A] {Γ Δ Ξ: List A}:
 def Elementwise.instWeakenable {A: Type u} [Weakenable.{u, v} A]
   : Weakenable.{u, max (u+1) v} (List A) where
   Wks := Elementwise.Wks.{u, v}
+  wksId := Elementwise.Wks.id
   wksTrans := Elementwise.Wks.trans
 
 --TODO: elementwise resource theorems
@@ -178,6 +191,11 @@ inductive List.Sublist {A: Type u}
   | cons {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) (l::Δ)
   | discard {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) Δ
 
+def List.Sublist.id {A}
+  : (Γ: List A) -> List.Sublist Γ Γ
+  | [] => nil
+  | l::Γ => cons l (id Γ)
+
 def List.Sublist.trans {A} {Γ Δ Ξ: List A}
   : List.Sublist Γ Δ -> List.Sublist Δ Ξ -> List.Sublist Γ Ξ
   | H, nil => H
@@ -186,6 +204,7 @@ def List.Sublist.trans {A} {Γ Δ Ξ: List A}
 
 def List.Sublist.weakenable {A}: Weakenable (List A) where
   Wks := List.Sublist
+  wksId := List.Sublist.id
   wksTrans := List.Sublist.trans
 
 --TODO: sublist/partition theorems? should this be the instance for List?
