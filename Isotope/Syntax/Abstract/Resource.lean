@@ -13,11 +13,24 @@ class Splittable.{u, v} (A: Type u): Type (max u v) where
         let ⟨a21, S1, S2⟩ := splitsAssoc (splitsSymm S1) (splitsSymm S2)
         ⟨a21, splitsSymm S1, splitsSymm S2⟩
 
+class Joinable.{u, v} (A: Type u): Type (max u v) where
+  Joins: A -> A -> A -> Sort v
+  joinsSymm {a b c: A}: Joins a b c -> Joins b a c
+  joinsAssoc {a123 a12 a1 a2 a3: A}:
+    Joins a12 a3 a123 -> Joins a1 a2 a12 ->
+      (a23: A) ×' (_: Joins a1 a23 a123) ×' (Joins a2 a3 a23)
+  joinsAssoc_inv {a123 a23 a1 a2 a3}:
+    Joins a1 a23 a123 -> Joins a2 a3 a23 ->
+      (a12: A) ×' (_: Joins a12 a3 a123) ×' (Joins a1 a2 a12)
+      := λJ1 J2 =>
+        let ⟨a21, J1, J2⟩ := joinsAssoc (joinsSymm J1) (joinsSymm J2)
+        ⟨a21, joinsSymm J1, joinsSymm J2⟩
+
 class Weakenable.{u, v} (A: Type u) where
   Weakens: A -> A -> Sort v
   weakensTrans: {a b c: A} -> Weakens a b -> Weakens b c -> Weakens a c
 
-class Resource.{u, v} (A: Type u)
+class SplitWk.{u, v} (A: Type u)
   extends Splittable.{u, v} A, Weakenable.{u, v} A
   where
   weakenLeft {a a' b c: A}: Weakens a' a -> Splits a b c
@@ -28,28 +41,44 @@ class Resource.{u, v} (A: Type u)
       let ⟨c', Ss, W⟩ := weakenLeft W (splitsSymm S);
       ⟨c', splitsSymm Ss, W⟩
 
-class WeakeningSplit.{u, v} (A: Type u)
-  extends Resource.{u, v} A
+class CSplitWk.{u, v} (A: Type u)
+  extends SplitWk.{u, v} A
   where
   weakenSplit {a a' b b' c c': A}: Weakens a' a -> Splits a b c -> Splits a' b c
 
 def TRes (A: Type u) := A
 
-instance TRes.instSplittable: Splittable (TRes A) where
+instance TRes.instSplittable {A}: Splittable (TRes A) where
   Splits a b c := b = a ∧ c = a
   splitsSymm | ⟨_, _⟩ => by simp [*]
   splitsAssoc | ⟨_, _⟩, ⟨_, _⟩ => ⟨_, ⟨by simp [*], rfl⟩, by simp [*]⟩
 
-instance TRes.instWeakenable: Weakenable (TRes A) where
+instance TRes.instWeakenable {A}: Weakenable (TRes A) where
   Weakens a b := b = a
   weakensTrans | rfl, rfl => rfl
 
-instance TRes.instResource: Resource (TRes A) where
-  weakenLeft | rfl, ⟨_, rfl⟩ => ⟨_, ⟨by simp [*], rfl⟩, rfl⟩
-  weakenRight | rfl, ⟨_, rfl⟩ => ⟨_, ⟨by simp [*], rfl⟩, rfl⟩
+instance TRes.instResource {A}: SplitWk (TRes A) where
+  weakenLeft | rfl, H => ⟨_, H, rfl⟩
+  weakenRight | rfl, H => ⟨_, H, rfl⟩
 
-instance TRes.instWeakeningSplit: WeakeningSplit (TRes A) where
-  weakenSplit | rfl, ⟨_, rfl⟩ => ⟨by simp [*], rfl⟩
+instance TRes.instCSplitWk {A}: CSplitWk (TRes A) where
+  weakenSplit | rfl, H => H
+
+def TWkRes (A: Type u) := A
+
+instance TWkRes.instSplittable {A} [S: Splittable A]
+  : Splittable (TWkRes A) := S
+
+instance TWkRes.instWeakenable {A}: Weakenable (TWkRes A) where
+  Weakens a b := b = a
+  weakensTrans | rfl, rfl => rfl
+
+instance TWkRes.instResource {A} [Splittable A]: SplitWk (TWkRes A) where
+  weakenLeft | rfl, H => ⟨_, H, rfl⟩
+  weakenRight | rfl, H => ⟨_, H, rfl⟩
+
+instance TWkRes.instCSplitWk {A} [Splittable A]: CSplitWk (TWkRes A) where
+  weakenSplit | rfl, H => H
 
 open Splittable
 open Weakenable
@@ -131,6 +160,11 @@ def List.Partitions.splittable {A}: Splittable (List A) where
   Splits := List.Partitions
   splitsSymm := List.Partitions.symm
   splitsAssoc := List.Partitions.assoc
+
+def List.Partitions.joinable {A}: Joinable (List A) where
+  Joins Δ Ξ Γ := List.Partitions Γ Δ Ξ
+  joinsSymm := List.Partitions.symm
+  joinsAssoc := List.Partitions.assoc
 
 inductive List.Sublist {A: Type u}
   : List A -> List A -> Type u
