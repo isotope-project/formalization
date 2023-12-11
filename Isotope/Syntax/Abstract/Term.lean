@@ -86,6 +86,20 @@ class SubstCat.{u, v, ss, sj, sv, sb, si, sc}
       ⟨Θl, Θr, s, σl ≫ τl, σr ≫ τr⟩
     )
 
+def Term.subst_id {C} [L: SubstCat C]
+  {Γ: C} {A: L.Ty}: (a: Term Γ A) -> a.subst (𝟙 Γ) = a
+  | var X => L.subst_id_var X
+  | op f x => congrArg _ (subst_id x)
+  | cnst c => congrArg _ (L.subst_id_cnst c)
+  | pair s a b J => by
+    rw [Term.subst, L.subst_id_split]
+    simp only []
+    rw [subst_id a, subst_id b]
+  | bind s x a e => by
+    rw [Term.subst, L.subst_id_split]
+    simp only []
+    rw [L.subst_id_bind, subst_id a, subst_id e]
+
 def Term.subst_comp {C} [L: SubstCat C]
   {Θ Γ Δ: C} {A: L.Ty} (σ: L.Hom Θ Γ) (τ: L.Hom Γ Δ):
   (a: Term Δ A) -> a.subst (σ ≫ τ) = (a.subst τ).subst σ
