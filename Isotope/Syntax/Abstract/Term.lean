@@ -22,10 +22,10 @@ inductive Term.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   | var {Γ X}: L.var Γ X -> Term Γ X
   | op {Γ A B}: L.inst.Hom A B -> Term Γ A -> Term Γ B
   | cnst {Γ A}: L.cnst Γ A -> Term Γ A
-  | pair {Γ Δ Ξ A B C}: L.Splits Γ Δ Ξ ->
+  | pair {Γ Δ Ξ A B C}: L.Split Γ Δ Ξ ->
     Term Δ A -> Term Ξ B -> L.pair.Joins A B C ->
     Term Γ C
-  | bind {Γ Δ Ξ A AΔ B}: L.Splits Γ Δ Ξ ->
+  | bind {Γ Δ Ξ A AΔ B}: L.Split Γ Δ Ξ ->
     L.bind A Δ AΔ ->
     Term Ξ A ->
     Term AΔ B ->
@@ -39,8 +39,8 @@ class Subst.{u, v, ss, sj, sv, sb, si, sc}
   subst_cnst {Θ Γ}: Hom Θ Γ -> cnst Γ A -> cnst Θ A
   subst_bind {Θ Γ A AΓ}: Hom Θ Γ -> bind A Γ AΓ
     -> (AΘ: C) ×' (_: Hom AΘ AΓ) ×' bind A Θ AΘ
-  subst_split {Θ Γ Δ Ξ}: Hom Θ Γ -> Splits Γ Δ Ξ
-    -> (ΘΔ ΘΞ: C) ×' (_: Splits Θ ΘΔ ΘΞ) ×' (_: Hom ΘΔ Δ) ×' Hom ΘΞ Ξ
+  subst_split {Θ Γ Δ Ξ}: Hom Θ Γ -> Split Γ Δ Ξ
+    -> (ΘΔ ΘΞ: C) ×' (_: Split Θ ΘΔ ΘΞ) ×' (_: Hom ΘΔ Δ) ×' Hom ΘΞ Ξ
 
 def Term.subst {C} [L: Subst C]
   {Θ Γ: C} {A: L.Ty} (σ: L.Hom Θ Γ): Term Γ A -> Term Θ A
@@ -67,7 +67,7 @@ class SubstCat.{u, v, ss, sj, sv, sb, si, sc}
   --TODO: should this hold for every morphism Γ --> Γ?
   subst_id_cnst {Γ A} (c: cnst Γ A): subst_cnst (𝟙 Γ) c = c
   subst_id_bind {Γ A AΓ} (X: bind A Γ AΓ): subst_bind (𝟙 Γ) X = ⟨AΓ, 𝟙 AΓ, X⟩
-  subst_id_split {Γ Δ Ξ} (X: Splits Γ Δ Ξ):
+  subst_id_split {Γ Δ Ξ} (X: Split Γ Δ Ξ):
     subst_split (𝟙 Γ) X = ⟨Δ, Ξ, X, 𝟙 Δ, 𝟙 Ξ⟩
   subst_comp_var {Θ Γ Δ} (σ: Hom Θ Γ) (τ: Hom Γ Δ) (X: var Δ A):
     subst_var (σ ≫ τ) X = (subst_var τ X).subst σ
@@ -79,7 +79,7 @@ class SubstCat.{u, v, ss, sj, sv, sb, si, sc}
       let ⟨Θx, σx, x⟩ := subst_bind σ x
       ⟨Θx, σx ≫ τx, x⟩
     )
-  subst_comp_split {Θ Γ Δ Δl Δr} (σ: Hom Θ Γ) (τ: Hom Γ Δ) (s: Splits Δ Δl Δr):
+  subst_comp_split {Θ Γ Δ Δl Δr} (σ: Hom Θ Γ) (τ: Hom Γ Δ) (s: Split Δ Δl Δr):
     subst_split (σ ≫ τ) s = (
       let ⟨_Γl, _Γr, s, τl, τr⟩ := subst_split τ s;
       let ⟨Θl, Θr, s, σl, σr⟩ := subst_split σ s;
