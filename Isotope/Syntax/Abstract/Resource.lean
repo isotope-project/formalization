@@ -33,6 +33,9 @@ class Weakenable.{u, v} (A: Type u) where
   wksId (a: A): Wks a a
   wksTrans {a b c: A}: Wks a b -> Wks b c -> Wks a c
 
+class Droppable.{u, v} (A: Type u) where
+  Drop: A -> Sort v
+
 class SplitWk.{u, v} (A: Type u)
   extends Splittable.{u, v} A, Weakenable.{u, v} A
   where
