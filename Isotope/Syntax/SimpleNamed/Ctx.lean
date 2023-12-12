@@ -6,15 +6,19 @@ open Abstract
 
 namespace SimpleNamed
 
-structure Var (N: Type u) (T: Type v) extends Transparency where
+structure Var (N: Type u) (T: Type v)
+  extends Transparency
+  : Type (max u v) where
   name: N
   ty: Ty T
 
-instance Var.instHasLin {N: Type u} {T: Type v} [HasLin T]: HasLin (Var N T) where
+instance Var.instHasLin {N: Type u} {T: Type v} [HasLin T]
+  : HasLin (Var N T) where
   aff v := v.aff && HasLin.aff v.ty
   rel v := v.rel && HasLin.rel v.ty
 
-instance Var.instPartialOrder {N: Type u} {T: Type v}: PartialOrder (Var N T) where
+instance Var.instPartialOrder {N: Type u} {T: Type v}
+  : PartialOrder (Var N T) where
   le l r := l.name = r.name ∧ l.ty = r.ty ∧ l.toTransparency ≤ r.toTransparency
   le_refl := by simp [le_refl]
   le_trans _ _ _
@@ -37,15 +41,33 @@ theorem Var.le.rel {N: Type u} {T: Type v} [HasLin T] {l r: Var N T}
     intro H H';
     exact ⟨Ht.2.2 H, Ht.1 ▸ H'⟩
 
-instance Var.instCSplitWk {N T}: CSplitWk (Var N T) := PRes.instCSplitWk
+instance Var.instDroppable {N: Type u} {T: Type v} [HasLin T]
+  : Droppable.{_, 0} (Var N T) where
+  Drop v := HasLin.aff v
 
---TODO: add context well-formedness condition? (no repeated names)
---TODO: contexts as finite functions Name -> Var? could be !FUN!
---Can be equipped with a separate "domain"?
---In this case can define separation-style judgements on domains...
-abbrev Ctx (N: Type u) (T: Type v) := List (Var N T)
+instance Var.instWeakenable {N: Type u} {T: Type v}
+  : Weakenable.{_, 0} (Var N T)
+  := PRes.instWeakenable
 
--- instance Ctx.instCSplitWk {N T}: CSplitWk (Ctx N T) := PRes.instCSplitWk
+instance Var.instCSplitWk {N: Type u} {T: Type v} [HasLin T]
+  : CSplitWk.{_, 0, 0} (Var N T) where
+  Split v x y := HasLin.rel v ∧ v ≥ x ∧ v ≥ y
+  splitSymm s := ⟨s.1, s.2.2, s.2.1⟩
+  splitAssoc | ⟨R123, Ha12, Ha3⟩, ⟨_, Ha1, Ha2⟩ => ⟨_,
+    ⟨R123, le_trans Ha1 Ha12, le_refl _⟩,
+    ⟨R123, le_trans Ha2 Ha12, Ha3⟩⟩
+  wkSplit | w, s => ⟨le.rel w s.1, le_trans s.2.1 w, le_trans s.2.2 w⟩
+  splitWkLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
+  splitWkRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
+
+def Ctx (N: Type u) (T: Type v) := List (Var N T)
+
+instance Ctx.instCSplitWk {N: Type u} {T: Type v} [HasLin T]
+  : CSplitWk (Ctx N T)
+  := SplitOrWk.instCSplitWk
+  --TODO: support discarding...
+
+instance Ctx.instAppend {N T}: Append (Ctx N T) := List.instAppendList
 
 inductive Ctx.name {N: Type u} {T: Type v}: Ctx N T -> N -> Type (max u v)
   | head (q n A) (Γ: Ctx N T): Ctx.name (⟨q, n, A⟩::Γ) n
@@ -54,8 +76,8 @@ inductive Ctx.name {N: Type u} {T: Type v}: Ctx N T -> N -> Type (max u v)
 def Ctx.undef {N: Type u} {T: Type v} (Γ: Ctx N T) (n: N): Prop
   := IsEmpty (Γ.name n)
 
-def Ctx.names {N: Type u} {T: Type v}: Ctx N T -> List N
-  := List.map Var.name
+def Ctx.names {N: Type u} {T: Type v} (Γ: Ctx N T): List N
+  := Γ.map Var.name
 
 def Ctx.names_unique {N: Type u} {T: Type v} (Γ: Ctx N T): Prop
   := Γ.names.Nodup
@@ -152,6 +174,92 @@ def Ctx.split.sright {N: Type u} {T: Type v}[HasLin T] {Γ Δ Ξ: Ctx N T}
 def Ctx.split.sdup {N: Type u} {T: Type v}[HasLin T] {Γ Δ Ξ: Ctx N T}
   {v} (Hv: HasLin.rel v): split Γ Δ Ξ -> split (v::Γ) (v::Δ) (v::Ξ)
   := dup Hv (le_refl v) (le_refl v)
+
+def Ctx.Split.{u, v} {N: Type u} {T: Type v} [HasLin T]
+  : Ctx N T → Ctx N T → Ctx N T → Type _
+  := Ctx.instCSplitWk.Split
+
+@[match_pattern]
+def Ctx.Split.nil {N: Type u} {T: Type v} [HasLin T]: @Split N T _ [] [] []
+  := SplitOrWk.Split.nil
+@[match_pattern]
+def Ctx.Split.left {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  {v l: Var N T} (Hl: l ≤ v) (H: Split Γ Δ Ξ): Split (v::Γ) (l::Δ) Ξ
+  := SplitOrWk.Split.left Hl H
+@[match_pattern]
+def Ctx.Split.right {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  {v r: Var N T} (Hr: r ≤ v) (H: Split Γ Δ Ξ): Split (v::Γ) Δ (r::Ξ)
+  := SplitOrWk.Split.right Hr H
+@[match_pattern]
+def Ctx.Split.both {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  {v l r: Var N T} (Hd: Splittable.Split v l r) (H: Split Γ Δ Ξ)
+    : Split (v::Γ) (l::Δ) (r::Ξ)
+  := SplitOrWk.Split.both Hd H
+@[match_pattern]
+def Ctx.Split.dup {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  {v l r: Var N T} (Hrel: HasLin.rel v) (Hl: l ≤ v) (Hr: r ≤ v) (H: Split Γ Δ Ξ)
+  : Split (v::Γ) (l::Δ) (r::Ξ)
+  := SplitOrWk.Split.both ⟨Hrel, Hl, Hr⟩ H
+@[match_pattern]
+def Ctx.Split.sleft {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (l: Var N T) (H: Split Γ Δ Ξ): Split (l::Γ) (l::Δ) Ξ
+  := SplitOrWk.Split.left (le_refl l) H
+@[match_pattern]
+def Ctx.Split.sright {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (r: Var N T) (H: Split Γ Δ Ξ): Split (r::Γ) Δ (r::Ξ)
+  := SplitOrWk.Split.right (le_refl r) H
+@[match_pattern]
+def Ctx.Split.sboth {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  {v: Var N T} (Hrel: HasLin.rel v) (H: Split Γ Δ Ξ): Split (v::Γ) (v::Δ) (v::Ξ)
+  := SplitOrWk.Split.both ⟨Hrel, le_refl _, le_refl _⟩ H
+
+abbrev Ctx.Split.symm {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  : Split Γ Δ Ξ -> Split Γ Ξ Δ
+  := Splittable.splitSymm
+
+def Ctx.Split.list_left {N T} [HasLin T]
+  : (Γ: Ctx N T) -> Γ.Split Γ []
+  | [] => nil
+  | v::Γ => sleft v (list_left Γ)
+
+def Ctx.Split.list_right {N T} [HasLin T]
+  : (Γ: Ctx N T) -> Γ.Split [] Γ
+  | [] => nil
+  | v::Γ => sright v (list_right Γ)
+
+def Ctx.Split.list_dup {N T} [HasLin T]
+  : {Γ: Ctx N T} -> Γ.rel -> Γ.Split Γ Γ
+  | [], _ => nil
+  | _::_, H => sboth (Ctx.rel.head H) (list_dup (Ctx.rel.tail H))
+
+def Ctx.Split.app_left {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.Split Δ Ξ): (Θ: Ctx N T) -> Split (Θ ++ Γ) (Θ ++ Δ) Ξ
+  | [] => S
+  | v::Θ => sleft v (app_left S Θ)
+
+def Ctx.Split.app_right {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.Split Δ Ξ): (Θ: Ctx N T) -> Split (Θ ++ Γ) Δ (Θ ++ Ξ)
+  | [] => S
+  | v::Θ => sright v (app_right S Θ)
+
+def Ctx.Split.app_dup {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
+  (S: Γ.Split Δ Ξ): (Θ: Ctx N T) -> (H: HasLin.rel Θ)
+    -> Split (Θ ++ Γ) (Θ ++ Δ) (Θ ++ Ξ)
+  | [], _ => S
+  | _::Θ, H => sboth (rel.head H) (app_dup S Θ (rel.tail H))
+
+theorem Ctx.Split.left_length_decreasing {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Δ.length ≤ Γ.length
+  | nil => le_refl _
+  | left _ H | both _ H => Nat.succ_le_succ (left_length_decreasing H)
+  | right _ H => Nat.le_step (left_length_decreasing H)
+
+theorem Ctx.Split.right_length_decreasing {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T} (H: Split Γ Δ Ξ): Ξ.length ≤ Γ.length
+  := H.symm.left_length_decreasing
+
+-- def Ctx.Wk {N: Type u} {T: Type v} [HasLin T] (Γ Δ: Ctx N T)
+--   := Ctx.split Γ Δ []
 
 inductive Ctx.ssplit {N: Type u} {T: Type v} [HasLin T]
   : Ctx N T → Ctx N T → Ctx N T → Type (max u v)
@@ -578,6 +686,94 @@ def Ctx.ssplit.associate_right {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
       dup Hrel (le_trans Hl' Hl) (le_refl _) Sl,
       dup Hrel (le_trans Hr' Hl) Hr Sr⟩
 
+--TODO: Port to Splittable
+def Ctx.Split.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
+  Split Γ Δ Ξ
+    -> Split Δ Θ1 Θ2
+    -> Split Ξ Θ3 Θ4
+    -> (Θ13 Θ24: _)
+      × Split Γ Θ13 Θ24
+      × Split Θ13 Θ1 Θ3
+      × Split Θ24 Θ2 Θ4
+  | nil, nil, nil => ⟨[], [], nil, nil, nil⟩
+  | left Hl SΓ, left Hl' S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24, left Hl S1324, left Hl' S13, S24⟩
+  | left Hl SΓ, right Hr' S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24, right Hl S1324, S13, left Hr' S24⟩
+  | left Hl SΓ, both Hd S12, S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth (Var.le.rel Hl Hd.1) S1324,
+      left (le_trans Hd.2.1 Hl) S13,
+      left (le_trans Hd.2.2 Hl) S24⟩
+  | right Hr SΓ, S12, left Hl' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24, left Hr S1324, right Hl' S13, S24⟩
+  | right Hr SΓ, S12, right Hr' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24, right Hr S1324, S13, right Hr' S24⟩
+  | right Hr SΓ, S12, both Hd S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth (Var.le.rel Hr Hd.1) S1324,
+      right (le_trans Hd.2.1 Hr) S13,
+      right (le_trans Hd.2.2 Hr) S24⟩
+  | both Hd SΓ, left Hl' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, Θ24,
+      sleft _ S1324,
+      dup Hd.1 (le_trans Hl' Hd.2.1) (le_trans Hl'' Hd.2.2) S13,
+      S24⟩
+  | both Hd SΓ, right Hr' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      dup Hd.1 Hd.2.2 Hd.2.1 S1324,
+      right Hl'' S13,
+      left Hr' S24⟩
+  | both Hd SΓ, both Hd' S12, left Hl'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth Hd.1 S1324,
+      both ⟨Var.le.rel Hd.2.1 Hd'.1,
+        le_trans Hd'.2.1 Hd.2.1,
+        le_trans Hl'' Hd.2.2⟩ S13,
+      left (le_trans Hd'.2.2 Hd.2.1) S24⟩
+  | both Hd SΓ, left Hl' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24, both Hd S1324, left Hl' S13, right Hr'' S24⟩
+  | both Hd SΓ, right Hr' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨Θ13, _::Θ24,
+      sright _ S1324,
+      S13,
+      both ⟨Hd.1, le_trans Hr' Hd.2.1, le_trans Hr'' Hd.2.2⟩ S24⟩
+  | both Hd SΓ, both Hd' S12, right Hr'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth Hd.1 S1324,
+      left (le_trans Hd'.2.1 Hd.2.1) S13,
+      both ⟨Hd.1, le_trans Hd'.2.2 Hd.2.1, le_trans Hr'' Hd.2.2⟩ S24⟩
+  | both Hd SΓ, left Hl' S12, both Hd'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth Hd.1 S1324,
+      both ⟨Hd.1, le_trans Hl' Hd.2.1, le_trans Hd''.2.1 Hd.2.2⟩  S13,
+      right (le_trans Hd''.2.2 Hd.2.2) S24⟩
+  | both Hd SΓ, right Hr' S12, both Hd'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth Hd.1 S1324,
+      right (le_trans Hd''.2.1 Hd.2.2) S13,
+      both ⟨Hd.1, le_trans Hr' Hd.2.1, le_trans Hd''.2.2 Hd.2.2⟩ S24⟩
+  | both Hd SΓ, both Hd' S12, both Hd'' S34 =>
+    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+    ⟨_::Θ13, _::Θ24,
+      sboth Hd.1 S1324,
+      both ⟨Hd.1, le_trans Hd'.2.1 Hd.2.1, le_trans Hd''.2.1 Hd.2.2⟩  S13,
+      both ⟨Hd.1, le_trans Hd'.2.2 Hd.2.1, le_trans Hd''.2.2 Hd.2.2⟩ S24⟩
+
 def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ
     -> Ctx.ssplit Δ Θ1 Θ2
@@ -663,6 +859,7 @@ def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx
       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
 
+--TODO: Port to Split
 def Ctx.ssplit.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
   (S: Ctx.ssplit Γ Δ Ξ) (S': Ctx.ssplit Δ Θ Φ) (H: Ξ.rel)
   : (Θ13 Θ24: _)

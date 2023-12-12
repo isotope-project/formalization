@@ -100,8 +100,8 @@ instance Elementwise.instSplittable {A: Type u} [Splittable.{u, v} A]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
-inductive Elementwise.Wk.{u, v, w} {A: Type u} [W: Weakenable.{u, w} A]
-  : Elementwise A -> Elementwise A -> Sort (max (u+1) v w)
+inductive Elementwise.Wk.{u, w} {A: Type u} [W: Weakenable.{u, w} A]
+  : Elementwise A -> Elementwise A -> Sort (max (u+1) w)
   | nil: Wk [] []
   | cons {a b: A} {Γ Δ: Elementwise A}
     : W.Wk a b -> Wk Γ Δ -> Wk (a :: Γ) (b :: Δ)
@@ -191,15 +191,15 @@ def SplitOrWk (A: Type u) := List A
 
 inductive SplitOrWk.Split.{u, v, w} {A: Type u}
   [S: Splittable.{u, v} A] [Weakenable.{u, w} A]
-  : SplitOrWk A -> SplitOrWk A -> SplitOrWk A -> Sort _
+  : SplitOrWk A -> SplitOrWk A -> SplitOrWk A -> Sort (max (u + 1) v w)
   | nil: Split [] [] []
   | left {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) (b::Δ) Ξ
   | right {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) Δ (b::Ξ)
   | both {a b c: A} {Γ Δ Ξ: List A}: S.Split a b c -> Split Γ Δ Ξ ->
     Split (a :: Γ) (b :: Δ) (c :: Ξ)
 
-def SplitOrWk.Wk {A} [Weakenable A]
-  : SplitOrWk A -> SplitOrWk A -> Sort _ := Elementwise.Wk
+def SplitOrWk.Wk.{u, w} {A: Type u} [Weakenable.{u, w} A]
+  : SplitOrWk A -> SplitOrWk A -> Sort (max (u + 1) w) := Elementwise.Wk
 
 @[match_pattern]
 def SplitOrWk.Wk.nil {A} [Weakenable A]: @Wk A _ [] [] := Elementwise.Wk.nil
@@ -289,20 +289,20 @@ def SplitOrWk.Split.splitWkRight {A} [CSplitWk A]
   | both sa S, Wk.cons w' W
     => both (CSplitWk.splitWkRight sa w') (splitWkRight S W)
 
-instance SplitOrWk.instWeakenable {A} [Weakenable A]
-  : Weakenable (SplitOrWk A) where
+instance SplitOrWk.instWeakenable {A: Type u} [Weakenable.{u, w} A]
+  : Weakenable.{u, max (u + 1) w} (SplitOrWk A) where
   Wk := Wk
   wkId := Wk.id
   wkTrans := Wk.trans
 
-instance SplitOrWk.instSplittable {A} [CSplitWk A]
-  : Splittable (SplitOrWk A) where
+instance SplitOrWk.instSplittable {A: Type u} [CSplitWk.{u, v, w} A]
+  : Splittable.{u, max (u + 1) v w} (SplitOrWk A) where
   Split := Split
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
-instance SplitOrWk.instCSplitWk {A} [CSplitWk A]
-  : CSplitWk (SplitOrWk A) where
+instance SplitOrWk.instCSplitWk {A: Type u} [CSplitWk.{u, v, w} A]
+  : CSplitWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
   wkSplit := Split.wkSplit
   splitWkLeft := Split.splitWkLeft
   splitWkRight := Split.splitWkRight
