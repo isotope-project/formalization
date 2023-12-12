@@ -608,6 +608,22 @@ def Ctx.wk.fromAff {N: Type u} {T: Type v} [HasLin T]
   | [], _ => nil
   | _::_, H => discard (aff.head H) (fromAff (aff.tail H))
 
+def Ctx.Split.drop_left {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T}: Γ.Split Δ Ξ -> Ξ.wk [] -> Γ.wk Δ
+  | nil, _ => wk.nil
+  | left Hl HΓ, HΞ => wk.cons Hl (drop_left HΓ HΞ)
+  | both Hd HΓ, wk.discard _ HΞ => wk.cons Hd.2.1 (drop_left HΓ HΞ)
+  | right Hr HΓ, wk.discard Hr' HΞ =>
+    wk.discard (Var.le.aff Hr Hr') (drop_left HΓ HΞ)
+
+def Ctx.Split.drop_right {N: Type u} {T: Type v} [HasLin T]
+  {Γ Δ Ξ: Ctx N T}: Γ.Split Δ Ξ -> Δ.wk [] -> Γ.wk Ξ
+  | nil, _ => wk.nil
+  | left Hl HΓ, wk.discard Hl' HΞ =>
+    wk.discard (Var.le.aff Hl Hl') (drop_right HΓ HΞ)
+  | right Hr HΓ, HΞ => wk.cons Hr (drop_right HΓ HΞ)
+  | both Hd HΓ, wk.discard _ HΞ => wk.cons (Hd.2.2) (drop_right HΓ HΞ)
+
 def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
   {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Ξ.wk [] -> Γ.wk Δ
   | nil, _ => wk.nil
@@ -623,6 +639,18 @@ def Ctx.ssplit.drop_right {N: Type u} {T: Type v} [HasLin T]
     wk.discard (Var.le.aff Hl Hl') (drop_right HΓ HΞ)
   | right Hr HΓ, HΞ
   | dup _ _ Hr HΓ, wk.discard _ HΞ => wk.cons Hr (drop_right HΓ HΞ)
+
+def Ctx.Split.assoc {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
+  Split Γ Δ Ξ
+    -> Split Δ Θ Φ
+    -> (Ψ: _) ×' (_: Split Γ Θ Ψ) ×' Split Ψ Φ Ξ
+  := Splittable.splitAssoc
+
+def Ctx.Split.assoc_inv {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
+  Split Γ Δ Ξ
+    -> Split Ξ Θ Φ
+    -> (Ψ: _) ×' (_: Split Γ Ψ Φ) ×' Split Ψ Δ Θ
+  := Splittable.splitAssoc_inv
 
 def Ctx.ssplit.associate_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ

@@ -11,9 +11,9 @@ class Lang.{u, v, ss, sj, sv, sb, si, sc} (C: Type u)
   Ty: Type v
   pair: Joinable.{v, sj} Ty
   inst: Quiver.{si} Ty
+  cnst: C -> Ty -> Sort sc
   var: C -> Ty -> Sort sv
   bind: Ty -> C -> C -> Sort sb
-  cnst: C -> Ty -> Sort sc
 
 inductive Term.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   [L: Lang.{u, v, ss, sj, sv, sb, si, sc} C]
@@ -30,6 +30,27 @@ inductive Term.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
     Term Ξ A ->
     Term AΔ B ->
     Term Γ B
+
+class Upcastable (C: Type v) [L: Lang C]
+  where
+  Upcast: L.Ty -> L.Ty -> Type u
+  upcastVar {Γ A B}: Upcast A B -> L.var Γ A -> L.var Γ B
+  upcastInst {A B B'}
+    : Upcast B B' -> L.inst.Hom A B -> L.inst.Hom A B'
+  upcastCnst {Γ A B}: Upcast A B -> L.cnst Γ A -> L.cnst Γ B
+  upcastPair {A' A B C }
+    : Upcast A A' -> L.pair.Joins B C A -> L.pair.Joins B C A'
+
+def Term.upcast.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
+  [L: Lang.{u, v, ss, sj, sv, sb, si, sc} C]
+  [Upcastable C]
+  {Γ: C} {A B: L.Ty} (p: Upcastable.Upcast A B):
+  Term Γ A -> Term Γ B
+  | var X => Term.var (Upcastable.upcastVar p X)
+  | op f a => Term.op (Upcastable.upcastInst p f) a
+  | cnst c => Term.cnst (Upcastable.upcastCnst p c)
+  | pair s a b J => Term.pair s a b (Upcastable.upcastPair p J)
+  | bind s x a e => Term.bind s x a (upcast p e)
 
 class Subst.{u, v, ss, sj, sv, sb, si, sc}
   (C: Type u)
