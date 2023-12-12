@@ -103,6 +103,20 @@ instance EWRes.instCSplitWk {A} [Splittable A]: CSplitWk (EWRes A) where
 def PRes (A: Type u) := A
 
 instance PRes.instWeakenable {A} [P: PartialOrder A]: Weakenable (PRes A) where
-  Wk := P.le
-  wkTrans := P.le_trans _ _ _
+  Wk a b := P.le b a
+  wkTrans H H' := P.le_trans _ _ _ H' H
   wkId := P.le_refl
+
+instance PRes.instSplittable {A} [P: PartialOrder A]: Splittable (PRes A) where
+  Split a b c := P.le b a ∧ P.le c a
+  splitSymm | ⟨_, _⟩ => by simp [*]
+  splitAssoc | ⟨Ha12, Ha3⟩, ⟨Ha1, Ha2⟩ => ⟨_, -- a23 = a123
+    ⟨le_trans Ha1 Ha12, le_refl _⟩,
+    ⟨le_trans Ha2 Ha12, Ha3⟩⟩
+
+instance PRes.instCSplitWk {A} [PartialOrder A]: CSplitWk (PRes A) where
+  wkLeft | H, ⟨Hl, Hr⟩ => ⟨_, ⟨le_trans Hl H, le_trans Hr H⟩, le_refl _⟩
+  wkRight | H, ⟨Hl, Hr⟩ => ⟨_, ⟨le_trans Hl H, le_trans Hr H⟩, le_refl _⟩
+  wkSplits | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
+  splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
+  splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩

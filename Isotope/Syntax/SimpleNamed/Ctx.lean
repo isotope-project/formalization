@@ -36,14 +36,7 @@ theorem Var.le.rel {N: Type u} {T: Type v} [HasLin T] {l r: Var N T}
     intro H H';
     exact ⟨Ht.2.2 H, Ht.1 ▸ H'⟩
 
-instance Var.instWeakenable {N T}: Weakenable (Var N T) := PRes.instWeakenable
-
---TODO: should this be PRes.instSplittable?
-instance Var.instSplittable {N T}: Splittable (Var N T) where
-  Split v x y := x ≤ v ∧ y ≤ v
-  splitSymm := And.symm
-  splitAssoc H H'
-    := ⟨_, ⟨le_trans H'.1 H.1, le_refl _⟩, ⟨le_trans H'.2 H.1, H.2⟩⟩
+instance Var.instCSplitWk {N T}: CSplitWk (Var N T) := PRes.instCSplitWk
 
 --TODO: add context well-formedness condition? (no repeated names)
 --TODO: contexts as finite functions Name -> Var? could be !FUN!
