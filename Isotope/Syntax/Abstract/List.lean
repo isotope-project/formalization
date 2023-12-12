@@ -185,6 +185,8 @@ def List.Partitions.Split.toSplitBoth {A: Type u} [Splittable.{u, v} A]
   | left l p => SplitBoth.Split.left l (toSplitBoth p)
   | right r p => SplitBoth.Split.right r (toSplitBoth p)
 
+--TODO: instCSplitWk
+
 def SplitOrWk (A: Type u) := List A
 
 inductive SplitOrWk.Split.{u, v, w} {A: Type u}
@@ -195,6 +197,24 @@ inductive SplitOrWk.Split.{u, v, w} {A: Type u}
   | right {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) Δ (b::Ξ)
   | both {a b c: A} {Γ Δ Ξ: List A}: S.Split a b c -> Split Γ Δ Ξ ->
     Split (a :: Γ) (b :: Δ) (c :: Ξ)
+
+def SplitOrWk.Wk {A} [Weakenable A]
+  : SplitOrWk A -> SplitOrWk A -> Sort _ := Elementwise.Wk
+
+@[match_pattern]
+def SplitOrWk.Wk.nil {A} [Weakenable A]: @Wk A _ [] [] := Elementwise.Wk.nil
+
+@[match_pattern]
+def SplitOrWk.Wk.cons {A} [W: Weakenable A] {Γ Δ: SplitOrWk A} {a b: A}
+  : W.Wk a b -> Wk Γ Δ -> Wk (a::Γ) (b::Δ)
+  := Elementwise.Wk.cons
+
+def SplitOrWk.Wk.id {A} [Weakenable A] (Γ: SplitOrWk A)
+  : Wk Γ Γ := Elementwise.Wk.id Γ
+
+def SplitOrWk.Wk.trans {A} [Weakenable A] {Γ Δ Ξ: SplitOrWk A}
+  : Wk Γ Δ -> Wk Δ Ξ -> Wk Γ Ξ
+  := Elementwise.Wk.trans
 
 @[match_pattern]
 def SplitOrWk.Split.sleft.{u, v, w} {A: Type u}
@@ -245,3 +265,27 @@ def SplitOrWk.Split.assoc {A} [CSplitWk A] {Γ123 Γ12 Γ1 Γ2 Γ3: SplitOrWk A}
     let ⟨Γ23, s, s'⟩ := assoc s s'
     let ⟨_, sa, sa'⟩ := splitAssoc sa sa';
     ⟨_::Γ23, both sa s, both sa' s'⟩
+
+--TODO: toSplitOrWk for SplitOrBoth, Elementwise, Partition
+
+instance SplitOrWk.instWeakenable {A} [Weakenable A]
+  : Weakenable (SplitOrWk A) where
+  Wk := Wk
+  wkId := Wk.id
+  wkTrans := Wk.trans
+
+instance SplitOrWk.instSplittable {A} [CSplitWk A]
+  : Splittable (SplitOrWk A) where
+  Split := Split
+  splitSymm := Split.symm
+  splitAssoc := Split.assoc
+
+--TODO: instCSplitWk
+
+--TODO: weaken + drop
+
+--TODO: weaken w/ discard
+
+--TODO: split w/ discard
+
+--TODO: merge related inductives?

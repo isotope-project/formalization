@@ -1,5 +1,6 @@
 import Isotope.Syntax.Ty
 import Isotope.Syntax.Abstract.Basic
+import Isotope.Syntax.Abstract.List
 
 open Abstract
 
@@ -43,6 +44,8 @@ instance Var.instCSplitWk {N T}: CSplitWk (Var N T) := PRes.instCSplitWk
 --Can be equipped with a separate "domain"?
 --In this case can define separation-style judgements on domains...
 abbrev Ctx (N: Type u) (T: Type v) := List (Var N T)
+
+-- instance Ctx.instCSplitWk {N T}: CSplitWk (Ctx N T) := PRes.instCSplitWk
 
 inductive Ctx.name {N: Type u} {T: Type v}: Ctx N T -> N -> Type (max u v)
   | head (q n A) (Γ: Ctx N T): Ctx.name (⟨q, n, A⟩::Γ) n
