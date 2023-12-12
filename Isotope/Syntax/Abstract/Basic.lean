@@ -14,9 +14,21 @@ class Splittable.{u, v} (A: Type u): Type (max u v) where
   splitAssoc_inv {a123 a23 a1 a2 a3}:
     Split a123 a1 a23 -> Split a23 a2 a3 ->
       (a12: A) ×' (_: Split a123 a12 a3) ×' (Split a12 a1 a2)
-      := λS1 S2 =>
-        let ⟨a21, S1, S2⟩ := splitAssoc (splitSymm S1) (splitSymm S2)
-        ⟨a21, splitSymm S1, splitSymm S2⟩
+      := λs1_23 s2_3 =>
+        let ⟨a21, s3_21, s2_1⟩ := splitAssoc (splitSymm s1_23) (splitSymm s2_3)
+        ⟨a21, splitSymm s3_21, splitSymm s2_1⟩
+  permute_1234_1324 {a1234 a12 a34 a1 a2 a3 a4}:
+    Split a1234 a12 a34 -> Split a12 a1 a2 -> Split a34 a3 a4 ->
+      (a13 a24: A)
+        ×' (_: Split a1234 a13 a24)
+        ×' (_: Split a13 a1 a3)
+        ×' (Split a24 a2 a4)
+      := λs12_34 s1_2 s3_4 =>
+        let ⟨_a234, s1_234, s2_34⟩ := splitAssoc s12_34 s1_2;
+        let ⟨_a23, s23_4, s2_3⟩ := splitAssoc_inv s2_34 s3_4;
+        let ⟨a24, s32_4, s2_4⟩ := splitAssoc s23_4 (splitSymm s2_3);
+        let ⟨a13, s13_24, s1_3⟩ := splitAssoc_inv s1_234 s32_4;
+        ⟨a13, a24, s13_24, s1_3, s2_4⟩
 
 class Joinable.{u, v} (A: Type u): Type (max u v) where
   Joins: A -> A -> A -> Sort v

@@ -686,93 +686,26 @@ def Ctx.ssplit.associate_right {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
       dup Hrel (le_trans Hl' Hl) (le_refl _) Sl,
       dup Hrel (le_trans Hr' Hl) Hr Sr⟩
 
---TODO: Port to Splittable
-def Ctx.Split.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
-  Split Γ Δ Ξ
-    -> Split Δ Θ1 Θ2
-    -> Split Ξ Θ3 Θ4
-    -> (Θ13 Θ24: _)
-      × Split Γ Θ13 Θ24
-      × Split Θ13 Θ1 Θ3
-      × Split Θ24 Θ2 Θ4
-  | nil, nil, nil => ⟨[], [], nil, nil, nil⟩
-  | left Hl SΓ, left Hl' S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24, left Hl S1324, left Hl' S13, S24⟩
-  | left Hl SΓ, right Hr' S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24, right Hl S1324, S13, left Hr' S24⟩
-  | left Hl SΓ, both Hd S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth (Var.le.rel Hl Hd.1) S1324,
-      left (le_trans Hd.2.1 Hl) S13,
-      left (le_trans Hd.2.2 Hl) S24⟩
-  | right Hr SΓ, S12, left Hl' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24, left Hr S1324, right Hl' S13, S24⟩
-  | right Hr SΓ, S12, right Hr' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24, right Hr S1324, S13, right Hr' S24⟩
-  | right Hr SΓ, S12, both Hd S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth (Var.le.rel Hr Hd.1) S1324,
-      right (le_trans Hd.2.1 Hr) S13,
-      right (le_trans Hd.2.2 Hr) S24⟩
-  | both Hd SΓ, left Hl' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24,
-      sleft _ S1324,
-      dup Hd.1 (le_trans Hl' Hd.2.1) (le_trans Hl'' Hd.2.2) S13,
-      S24⟩
-  | both Hd SΓ, right Hr' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      dup Hd.1 Hd.2.2 Hd.2.1 S1324,
-      right Hl'' S13,
-      left Hr' S24⟩
-  | both Hd SΓ, both Hd' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth Hd.1 S1324,
-      both ⟨Var.le.rel Hd.2.1 Hd'.1,
-        le_trans Hd'.2.1 Hd.2.1,
-        le_trans Hl'' Hd.2.2⟩ S13,
-      left (le_trans Hd'.2.2 Hd.2.1) S24⟩
-  | both Hd SΓ, left Hl' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24, both Hd S1324, left Hl' S13, right Hr'' S24⟩
-  | both Hd SΓ, right Hr' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24,
-      sright _ S1324,
-      S13,
-      both ⟨Hd.1, le_trans Hr' Hd.2.1, le_trans Hr'' Hd.2.2⟩ S24⟩
-  | both Hd SΓ, both Hd' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth Hd.1 S1324,
-      left (le_trans Hd'.2.1 Hd.2.1) S13,
-      both ⟨Hd.1, le_trans Hd'.2.2 Hd.2.1, le_trans Hr'' Hd.2.2⟩ S24⟩
-  | both Hd SΓ, left Hl' S12, both Hd'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth Hd.1 S1324,
-      both ⟨Hd.1, le_trans Hl' Hd.2.1, le_trans Hd''.2.1 Hd.2.2⟩  S13,
-      right (le_trans Hd''.2.2 Hd.2.2) S24⟩
-  | both Hd SΓ, right Hr' S12, both Hd'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth Hd.1 S1324,
-      right (le_trans Hd''.2.1 Hd.2.2) S13,
-      both ⟨Hd.1, le_trans Hr' Hd.2.1, le_trans Hd''.2.2 Hd.2.2⟩ S24⟩
-  | both Hd SΓ, both Hd' S12, both Hd'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sboth Hd.1 S1324,
-      both ⟨Hd.1, le_trans Hd'.2.1 Hd.2.1, le_trans Hd''.2.1 Hd.2.2⟩  S13,
-      both ⟨Hd.1, le_trans Hd'.2.2 Hd.2.1, le_trans Hd''.2.2 Hd.2.2⟩ S24⟩
+def Ctx.Split.permute_1234_1324 {N T} [HasLin T]
+  {Θ1234 Θ12 Θ34 Θ1 Θ2 Θ3 Θ4: Ctx N T}:
+  Split Θ1234 Θ12 Θ34
+    -> Split Θ12 Θ1 Θ2
+    -> Split Θ34 Θ3 Θ4
+    -> (Θ13 Θ24: Ctx N T)
+      ×' (_: Split Θ1234 Θ13 Θ24)
+      ×' (_: Split Θ13 Θ1 Θ3)
+      ×' Split Θ24 Θ2 Θ4
+  := Splittable.permute_1234_1324
+
+def Ctx.Split.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
+  (S: Split Γ Δ Ξ) (S': Split Δ Θ Φ) (H: Ξ.rel)
+  : (Θ13 Θ24: Ctx N T)
+      ×' (_: Split Γ Θ13 Θ24)
+      ×' (_: Split Θ13 Θ Ξ)
+      ×' Split Θ24 Φ Ξ
+  := @permute_1234_1324 N T _ Γ Δ Ξ Θ Φ Ξ Ξ S S' (list_dup H)
+
+--TODO: port more explicit implementation to SplitOrWk?
 
 def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
   Ctx.ssplit Γ Δ Ξ
@@ -859,7 +792,6 @@ def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx
       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
 
---TODO: Port to Split
 def Ctx.ssplit.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
   (S: Ctx.ssplit Γ Δ Ξ) (S': Ctx.ssplit Δ Θ Φ) (H: Ξ.rel)
   : (Θ13 Θ24: _)
