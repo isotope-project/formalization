@@ -1,5 +1,5 @@
 import Mathlib.CategoryTheory.Category.Basic
-import Isotope.Syntax.Abstract.Resource
+import Isotope.Syntax.Abstract.Basic
 
 open CategoryTheory
 
