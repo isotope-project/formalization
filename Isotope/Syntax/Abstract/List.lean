@@ -266,7 +266,28 @@ def SplitOrWk.Split.assoc {A} [CSplitWk A] {Γ123 Γ12 Γ1 Γ2 Γ3: SplitOrWk A}
     let ⟨_, sa, sa'⟩ := splitAssoc sa sa';
     ⟨_::Γ23, both sa s, both sa' s'⟩
 
---TODO: toSplitOrWk for SplitOrBoth, Elementwise, Partition
+def SplitOrWk.Split.wkSplit {A} [CSplitWk A]
+  {Γ' Γ Δ Ξ: SplitOrWk A}: Wk Γ' Γ -> Split Γ Δ Ξ -> Split Γ' Δ Ξ
+  | Wk.nil, nil => nil
+  | Wk.cons w W, left w' s => left (wkTrans w w') (wkSplit W s)
+  | Wk.cons w W, right w' s => right (wkTrans w w') (wkSplit W s)
+  | Wk.cons w W, both sa s => both (CSplitWk.wkSplit w sa) (wkSplit W s)
+
+def SplitOrWk.Split.splitWkLeft {A} [CSplitWk A]
+  {Γ Δ Δ' Ξ: SplitOrWk A}: Split Γ Δ Ξ -> Wk Δ Δ' -> Split Γ Δ' Ξ
+  | nil, Wk.nil => nil
+  | left w S, Wk.cons w' W => left (wkTrans w w') (splitWkLeft S W)
+  | right w S, W => right w (splitWkLeft S W)
+  | both sa S, Wk.cons w' W
+    => both (CSplitWk.splitWkLeft sa w') (splitWkLeft S W)
+
+def SplitOrWk.Split.splitWkRight {A} [CSplitWk A]
+  {Γ Δ Ξ Ξ': SplitOrWk A}: Split Γ Δ Ξ -> Wk Ξ Ξ' -> Split Γ Δ Ξ'
+  | nil, Wk.nil => nil
+  | left w S, W => left w (splitWkRight S W)
+  | right w S, Wk.cons w' W => right (wkTrans w w') (splitWkRight S W)
+  | both sa S, Wk.cons w' W
+    => both (CSplitWk.splitWkRight sa w') (splitWkRight S W)
 
 instance SplitOrWk.instWeakenable {A} [Weakenable A]
   : Weakenable (SplitOrWk A) where
@@ -280,7 +301,11 @@ instance SplitOrWk.instSplittable {A} [CSplitWk A]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
---TODO: instCSplitWk
+instance SplitOrWk.instCSplitWk {A} [CSplitWk A]
+  : CSplitWk (SplitOrWk A) where
+  wkSplit := Split.wkSplit
+  splitWkLeft := Split.splitWkLeft
+  splitWkRight := Split.splitWkRight
 
 --TODO: weaken + drop
 

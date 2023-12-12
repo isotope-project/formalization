@@ -53,23 +53,28 @@ class Droppable.{u, v} (A: Type u) where
 class SplitWk.{u, v, w} (A: Type u)
   extends Splittable.{u, v} A, Weakenable.{u, w} A
   where
-  wkLeft {a a' b c: A}: Wk a' a -> Split a b c
+  wkLeft {a' a b c: A}: Wk a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
-  wkRight {a a' b c: A}: Wk a' a -> Split a b c
+  wkRight {a' a b c: A}: Wk a' a -> Split a b c
     -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
     := λW S =>
       let ⟨c', Ss, W⟩ := wkLeft W (splitSymm S);
       ⟨c', splitSymm Ss, W⟩
   --TODO: distributive variant?
 
-class CSplitWk.{u, v} (A: Type u)
-  extends SplitWk.{u, v} A
+class CSplitWk.{u, v, w} (A: Type u)
+  extends Splittable.{u, v} A, Weakenable.{u, w} A
   where
-  wkSplits {a a' b b' c c': A}: Wk a' a -> Split a b c -> Split a' b c
+  wkSplit {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
   splitWkLeft {a b c b': A}
     : Split a b c -> Wk b b' -> Split a b' c
   splitWkRight {a b c c': A}
     : Split a b c -> Wk c c' -> Split a b c'
+    := λS W => splitSymm (splitWkLeft (splitSymm S) W)
+
+instance CSplitWk.instSplitWk {A} [W: CSplitWk A]: SplitWk A where
+  wkLeft w s := ⟨_, wkSplit w s, W.wkId _⟩
+  wkRight w s := ⟨_, wkSplit w s, W.wkId _⟩
 
 def ESRes (A: Type u) := A
 
@@ -91,12 +96,8 @@ instance EWRes.instWeakenable {A}: Weakenable (EWRes A) where
 instance EWRes.instSplittable {A} [S: Splittable A]
   : Splittable (EWRes A) := S
 
-instance EWRes.instSplitWk {A} [Splittable A]: SplitWk (EWRes A) where
-  wkLeft | rfl, H => ⟨_, H, rfl⟩
-  wkRight | rfl, H => ⟨_, H, rfl⟩
-
 instance EWRes.instCSplitWk {A} [Splittable A]: CSplitWk (EWRes A) where
-  wkSplits | rfl, H => H
+  wkSplit | rfl, H => H
   splitWkLeft | H, rfl => H
   splitWkRight | H, rfl => H
 
@@ -115,8 +116,6 @@ instance PRes.instSplittable {A} [P: PartialOrder A]: Splittable (PRes A) where
     ⟨le_trans Ha2 Ha12, Ha3⟩⟩
 
 instance PRes.instCSplitWk {A} [PartialOrder A]: CSplitWk (PRes A) where
-  wkLeft | H, ⟨Hl, Hr⟩ => ⟨_, ⟨le_trans Hl H, le_trans Hr H⟩, le_refl _⟩
-  wkRight | H, ⟨Hl, Hr⟩ => ⟨_, ⟨le_trans Hl H, le_trans Hr H⟩, le_refl _⟩
-  wkSplits | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
+  wkSplit | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
   splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
   splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩
