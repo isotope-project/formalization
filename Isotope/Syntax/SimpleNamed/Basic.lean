@@ -15,18 +15,18 @@ inductive Term {N: Type u} {T: Type v} [HasLin T]
   | var {Γ q n A} (p) (v: Γ.var ⟨q, n, A⟩): Term F Γ p A q
   | app {Γ} {f: F} {p A B} (Hf: inst f p q A B)
     : Term F Γ p A q -> Term F Γ p B q
-  | pair {Γ Δ Ξ A B q} (p): Γ.ssplit Δ Ξ
+  | pair {Γ Δ Ξ A B q} (p): Γ.Split Δ Ξ
     -> Term F Δ true A q
     -> Term F Ξ true B q
     -> Term F Γ p (Ty.tensor A B) q
   | unit (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.unit q
   | tt (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.bool q
   | ff (p) (v: Ctx.wk Γ []) (q): Term F Γ p Ty.bool q
-  | let1 {Γ Δ Ξ q x A B} (p): Γ.ssplit Δ Ξ
+  | let1 {Γ Δ Ξ q x A B} (p): Γ.Split Δ Ξ
     -> Term F Ξ true A q
     -> Term F (⟨⟨true, true⟩, x, A⟩::Δ) p B q
     -> Term F Γ p B q
-  | let2 {Γ Δ Ξ q x A y B C} (p): Γ.ssplit Δ Ξ
+  | let2 {Γ Δ Ξ q x A y B C} (p): Γ.Split Δ Ξ
     -> Term F Ξ true (Ty.tensor A B) q
     -> Term F (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ) p C q
     -> Term F Γ p C q
@@ -86,23 +86,23 @@ inductive SGCfg.{u, v, w} {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T]:
     (k: GKind) -> k.Ctx N T -> LCtx N T -> Type (max (max u v) w)
   | br {Γ Δ Ξ ℓ q n A L}:
-    Γ.ssplit Δ Ξ ->
+    Γ.Split Δ Ξ ->
     Term F Ξ true A q ->
     L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩ ->
     SGCfg F df Γ L
   | ite {Γ Δ Ξ L}:
-    Γ.ssplit Δ Ξ ->
+    Γ.Split Δ Ξ ->
     Term F Ξ true Ty.bool q ->
     SGCfg F df Δ L ->
     SGCfg F df Δ L ->
     SGCfg F df Γ L
   | let1 {Γ Δ Ξ p q x A L}:
-    Γ.ssplit Δ Ξ ->
+    Γ.Split Δ Ξ ->
     Term F Ξ p A q ->
     SGCfg F df (⟨⟨true, true⟩, x, A⟩::Δ) L ->
     SGCfg F df Γ L
   | let2 {Γ Δ Ξ p q x A y B L}:
-    Γ.ssplit Δ Ξ ->
+    Γ.Split Δ Ξ ->
     Term F Ξ p (Ty.tensor A B) q ->
     SGCfg F df (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ) L ->
     SGCfg F df Γ L
@@ -183,14 +183,14 @@ def SNBlk.{u, v, w} {N: Type u} {T: Type v} (F: Type w)
 @[match_pattern]
 def SNBlk.br {N: Type u} {T: Type v} {F: Type w} [HasLin T] [InstructionSet F T]
   {Γ Δ Ξ: Ctx N T} {ℓ q n A} {L: LCtx N T}
-  (S: Γ.ssplit Δ Ξ) (a: Term F Ξ true A q) (H: L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩)
+  (S: Γ.Split Δ Ξ) (a: Term F Ξ true A q) (H: L.label ⟨ℓ, Δ, ⟨q, n, A⟩⟩)
   : SNBlk F Γ L
   := SGCfg.br S a H
 @[match_pattern]
 def SNBlk.ite {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T]
   {Γ Δ Ξ: Ctx N T} {L: LCtx N T}
-  (S: Γ.ssplit Δ Ξ) (e: Term F Ξ true Ty.bool q)
+  (S: Γ.Split Δ Ξ) (e: Term F Ξ true Ty.bool q)
   (s t: SNBlk F Δ L)
   : SNBlk F Γ L
   := SGCfg.ite S e s t
@@ -198,7 +198,7 @@ def SNBlk.ite {N: Type u} {T: Type v} {F: Type w}
 def SNBlk.let1 {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T]
   {Γ Δ Ξ: Ctx N T} {p q x A} {L: LCtx N T}
-  (S: Γ.ssplit Δ Ξ) (a: Term F Ξ p A q)
+  (S: Γ.Split Δ Ξ) (a: Term F Ξ p A q)
   (t: SNBlk F (⟨⟨true, true⟩, x, A⟩::Δ) L)
   : SNBlk F Γ L
   := SGCfg.let1 S a t
@@ -206,7 +206,7 @@ def SNBlk.let1 {N: Type u} {T: Type v} {F: Type w}
 def SNBlk.let2 {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T]
   {Γ Δ Ξ: Ctx N T} {p q x A y B} {L: LCtx N T}
-  (S: Γ.ssplit Δ Ξ) (a: Term F Ξ p (A.tensor B) q)
+  (S: Γ.Split Δ Ξ) (a: Term F Ξ p (A.tensor B) q)
   (t: SNBlk F (⟨⟨true, true⟩, x, A⟩::⟨⟨true, true⟩, y, B⟩::Δ) L)
   : SNBlk F Γ L
   := SGCfg.let2 S a t
@@ -262,7 +262,7 @@ inductive SNSubst' {N: Type u} {T: Type v} (F: Type w) [HasLin T]
   [InstructionSet F T] (p: Bool)
   : Ctx N T -> Ctx N T -> Type (max (max u v) w)
   | nil {Γ Δ} (H: Γ.wk Δ): SNSubst' F p Γ Δ
-  | cons {Θ ΘΓ Θx q x A Γ} (S: Θ.ssplit ΘΓ Θx)
+  | cons {Θ ΘΓ Θx q x A Γ} (S: Θ.Split ΘΓ Θx)
     (BΓ: SNSubst' F p ΘΓ Γ)
     (Bx: Term F Θx p A q)
     : HasLin.lin Θx (q ⊓ HasLin.qtt A) -> SNSubst' F p Θ (⟨q, x, A⟩::Γ)
@@ -313,7 +313,7 @@ def SNSubst.nil {N: Type u} {T: Type v} {F: Type w}
 @[match_pattern]
 def SNSubst.cons {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T]
-  {Θ ΘΓ Θx: Ctx N T} {q x A Γ} (H: Θ.ssplit ΘΓ Θx)
+  {Θ ΘΓ Θx: Ctx N T} {q x A Γ} (H: Θ.Split ΘΓ Θx)
   (BΓ: SNSubst F ΘΓ Γ) (Bx: Term F Θx true A q)
   : HasLin.lin Θx (q ⊓ HasLin.qtt A) -> SNSubst F Θ (⟨q, x, A⟩::Γ)
   := SNSubst'.cons H BΓ Bx
@@ -335,7 +335,7 @@ def SNSubst.scons {N: Type u} {T: Type v} {F: Type w}
   (BΓ: SNSubst F Θ Γ) (v: Var N T)
   : SNSubst F (v::Θ) (v::Γ)
   := BΓ.cons
-    ((Ctx.ssplit.list_left Θ).sright v)
+    ((Ctx.Split.list_left Θ).sright v)
     (Term.var true (Ctx.wk.id [v]))
     (by
       simp only [HasLin.lin, HasLin.aff, Transparency.instLattice, HasLin.rel]
@@ -361,44 +361,44 @@ def SNSubst.target {N: Type u} {T: Type v} {F: Type w}
   (_: SNSubst F Γ Δ): Ctx N T
   := Δ
 
-def SNSubst.distribute_ssplit {N: Type u} {T: Type v} {F: Type w}
+def SNSubst.distributeSplit {N: Type u} {T: Type v} {F: Type w}
   [HasLin T] [InstructionSet F T] {Θ Γ Δ Ξ: Ctx N T}
-  : SNSubst F Θ Γ -> Γ.ssplit Δ Ξ ->
-    (ΘΔ ΘΞ: Ctx N T) × Θ.ssplit ΘΔ ΘΞ × SNSubst F ΘΔ Δ × SNSubst F ΘΞ Ξ
+  : SNSubst F Θ Γ -> Γ.Split Δ Ξ ->
+    (ΘΔ ΘΞ: Ctx N T) × Θ.Split ΘΔ ΘΞ × SNSubst F ΘΔ Δ × SNSubst F ΘΞ Ξ
   | nil H, S =>
     let ⟨Δ', S, H⟩ := S.distribute_left H;
     ⟨Δ', Ξ, S, nil H, nil (Ctx.wk.id _)⟩
-  | cons S BΓ Bx H, Ctx.ssplit.left Hl S' =>
-    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
-    let ⟨ΘΨ, S, S'⟩ := S.swap.associate_left S';
+  | cons S BΓ Bx H, Ctx.Split.left Hl S' =>
+    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distributeSplit BΓ S';
+    let ⟨ΘΨ, S, S'⟩ := S.symm.assoc_inv S';
     ⟨ΘΨ, ΘΞ, S,
-      cons S'.swap BΔ
+      cons S'.symm BΔ
         (Hl.2.1 ▸ Bx.upgrade (le_refl _) Hl.2.2)
         (HasLin.sublin (Hl.2.1 ▸ (inf_le_inf_right _ Hl.2.2)) H),
       BΞ⟩
-  | cons S BΓ Bx H, Ctx.ssplit.right Hr S' =>
-    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
-    let ⟨ΘΨ, S, S'⟩ := S.associate_right S';
+  | cons S BΓ Bx H, Ctx.Split.right Hr S' =>
+    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distributeSplit BΓ S';
+    let ⟨ΘΨ, S, S'⟩ := S.assoc S';
     ⟨ΘΔ, ΘΨ, S, BΔ,
       cons S' BΞ
         (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
         (HasLin.sublin (Hr.2.1 ▸ (inf_le_inf_right _ Hr.2.2)) H)⟩
-  | cons S BΓ Bx H, Ctx.ssplit.dup Hrel Hl Hr S' =>
-    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distribute_ssplit BΓ S';
+  | cons S BΓ Bx H, Ctx.Split.both Hd S' =>
+    let ⟨ΘΔ, ΘΞ, S', BΔ, BΞ⟩ := distributeSplit BΓ S';
     let ⟨_, _, S1324, S13, S24⟩ := S.distribute_dup_left S'
       (by
         simp only [
           HasLin.lin, Bool.decide_and, Bool.and_eq_true, decide_eq_true_eq
         ] at H
-        exact H.2 Hrel
+        exact H.2 Hd.1
       );
     ⟨_, _, S1324,
       cons S13 BΔ
-        (Hl.2.1 ▸ Bx.upgrade (le_refl _) Hl.2.2)
-        (HasLin.sublin (Hl.2.1 ▸ (inf_le_inf_right _ Hl.2.2)) H),
+        (Hd.2.1.2.1 ▸ Bx.upgrade (le_refl _) Hd.2.1.2.2)
+        (HasLin.sublin (Hd.2.1.2.1 ▸ (inf_le_inf_right _ Hd.2.1.2.2)) H),
       cons S24 BΞ
-        (Hr.2.1 ▸ Bx.upgrade (le_refl _) Hr.2.2)
-        (HasLin.sublin (Hr.2.1 ▸ (inf_le_inf_right _ Hr.2.2)) H)⟩
+        (Hd.2.2.2.1 ▸ Bx.upgrade (le_refl _) Hd.2.2.2.2)
+        (HasLin.sublin (Hd.2.2.2.1 ▸ (inf_le_inf_right _ Hd.2.2.2.2)) H)⟩
 
 --TODO: "subsubst w.r.t"
 
@@ -412,16 +412,16 @@ def Term.subst {N: Type u} {T: Type v} {F: Type w}
   | var _ X => (σ.twk X).toTerm.upgrade (by simp) (le_refl _)
   | app Hf a => app Hf (subst σ a)
   | pair _ S a b =>
-    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distributeSplit S;
     pair _ S (subst σΔ a) (subst σΞ b)
   | unit _ H _ => unit _ (σ.twk H).toDrop _
   | tt _ H _ => tt _ (σ.twk H).toDrop _
   | ff _ H _ => ff _ (σ.twk H).toDrop _
   | let1 _ S a e =>
-    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distributeSplit S;
     let1 _ S (subst σΞ a) (subst (σΔ.scons _) e)
   | let2 _ S a e =>
-    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distribute_ssplit S;
+    let ⟨_, _, S, σΔ, σΞ⟩ := σ.distributeSplit S;
     let2 _ S (subst σΞ a) (subst ((σΔ.scons _).scons _) e)
 
 inductive SNHLSubst {N: Type u} {T: Type v} (F: Type w)

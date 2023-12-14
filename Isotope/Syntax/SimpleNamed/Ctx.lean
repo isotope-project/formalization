@@ -261,65 +261,6 @@ theorem Ctx.Split.right_length_decreasing {N: Type u} {T: Type v} [HasLin T]
 -- def Ctx.Wk {N: Type u} {T: Type v} [HasLin T] (Γ Δ: Ctx N T)
 --   := Ctx.split Γ Δ []
 
-inductive Ctx.ssplit {N: Type u} {T: Type v} [HasLin T]
-  : Ctx N T → Ctx N T → Ctx N T → Type (max u v)
-  | nil: ssplit [] [] []
-  | left {Γ Δ Ξ} {v l}:  l ≤ v → ssplit Γ Δ Ξ → ssplit (v::Γ) (l::Δ) Ξ
-  | right {Γ Δ Ξ} {v r}: r ≤ v → ssplit Γ Δ Ξ → ssplit (v::Γ) Δ (r::Ξ)
-  | dup {Γ Δ Ξ} {v l r}: HasLin.rel v → l ≤ v → r ≤ v → ssplit Γ Δ Ξ
-    → ssplit (v::Γ) (l::Δ) (r::Ξ)
-
-@[match_pattern]
-def Ctx.ssplit.sleft {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  (v: Var N T): ssplit Γ Δ Ξ -> ssplit (v::Γ) (v::Δ) Ξ
-  := left (le_refl v)
-@[match_pattern]
-def Ctx.ssplit.sright {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  (v: Var N T): ssplit Γ Δ Ξ -> ssplit (v::Γ) Δ (v::Ξ)
-  := right (le_refl v)
-@[match_pattern]
-def Ctx.ssplit.sdup {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  {v} (Hv: HasLin.rel v): ssplit Γ Δ Ξ -> ssplit (v::Γ) (v::Δ) (v::Ξ)
-  := dup Hv (le_refl v) (le_refl v)
-
-def Ctx.ssplit.list_left {N T} [HasLin T]
-  : (Γ: Ctx N T) -> Γ.ssplit Γ []
-  | [] => nil
-  | v::Γ => sleft v (list_left Γ)
-
-def Ctx.ssplit.list_right {N T} [HasLin T]
-  : (Γ: Ctx N T) -> Γ.ssplit [] Γ
-  | [] => nil
-  | v::Γ => sright v (list_right Γ)
-
-def Ctx.ssplit.list_dup {N T} [HasLin T]
-  : {Γ: Ctx N T} -> Γ.rel -> Γ.ssplit Γ Γ
-  | [], _ => nil
-  | _::_, H => sdup (Ctx.rel.head H) (list_dup (Ctx.rel.tail H))
-
-def Ctx.ssplit.app_left {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> ssplit (Θ ++ Γ) (Θ ++ Δ) Ξ
-  | [] => S
-  | v::Θ => sleft v (app_left S Θ)
-
-def Ctx.ssplit.app_right {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> ssplit (Θ ++ Γ) Δ (Θ ++ Ξ)
-  | [] => S
-  | v::Θ => sright v (app_right S Θ)
-
-def Ctx.ssplit.app_dup {N T} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  (S: Γ.ssplit Δ Ξ): (Θ: Ctx N T) -> (H: HasLin.rel Θ)
-    -> ssplit (Θ ++ Γ) (Θ ++ Δ) (Θ ++ Ξ)
-  | [], _ => S
-  | _::Θ, H => sdup (rel.head H) (app_dup S Θ (rel.tail H))
-
-def Ctx.ssplit.toSplit {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  : ssplit Γ Δ Ξ → split Γ Δ Ξ
-  | nil => split.nil
-  | left Hl H => split.left Hl (ssplit.toSplit H)
-  | right Hr H => split.right Hr (ssplit.toSplit H)
-  | dup Hrel Hl Hr H => split.dup Hrel Hl Hr (ssplit.toSplit H)
-
 def Ctx.split.swap {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   : split Γ Δ Ξ -> split Γ Ξ Δ
   | nil => nil
@@ -329,20 +270,6 @@ def Ctx.split.swap {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   | dup H Hl Hr HΓ
     => dup H Hr Hl (swap HΓ)
 
-def Ctx.ssplit.swap {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  : ssplit Γ Δ Ξ -> ssplit Γ Ξ Δ
-  | nil => nil
-  | left Hl H => right Hl (swap H)
-  | right Hr H => left Hr (swap H)
-  | dup Hrel Hl Hr H => dup Hrel Hr Hl (swap H)
-
-def Ctx.ssplit.swap_toSplit {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  : (H: ssplit Γ Δ Ξ) -> H.swap.toSplit = H.toSplit.swap
-  | nil => rfl
-  | left _ H => congrArg _ (swap_toSplit H)
-  | right _ H => congrArg _ (swap_toSplit H)
-  | dup _ _ _ H => congrArg _ (swap_toSplit H)
-
 def Ctx.split.swap_idem {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   : Function.LeftInverse (@swap N T _ Γ Δ Ξ) (@swap N T _ Γ Ξ Δ)
   | nil => rfl
@@ -351,22 +278,8 @@ def Ctx.split.swap_idem {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   | discard _ HΓ => by simp [swap, swap_idem HΓ]
   | dup _ _ _ HΓ => by simp [swap, swap_idem HΓ]
 
-def Ctx.ssplit.swap_idem {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  : Function.LeftInverse (@swap N T _ Γ Δ Ξ) (@swap N T _ Γ Ξ Δ)
-  | nil => rfl
-  | left _ H => by simp [swap, swap_idem H]
-  | right _ H => by simp [swap, swap_idem H]
-  | dup _ _ _ H => by simp [swap, swap_idem H]
-
 def Ctx.split.swap_equiv {N: Type u} {T: Type v} [HasLin T] (Γ Δ Ξ: Ctx N T)
   : Equiv (split Γ Δ Ξ) (split Γ Ξ Δ) where
-  toFun := swap
-  invFun := swap
-  left_inv := swap_idem
-  right_inv := swap_idem
-
-def Ctx.ssplit.swap_equiv {N: Type u} {T: Type v} [HasLin T] (Γ Δ Ξ: Ctx N T)
-  : Equiv (ssplit Γ Δ Ξ) (ssplit Γ Ξ Δ) where
   toFun := swap
   invFun := swap
   left_inv := swap_idem
@@ -381,17 +294,9 @@ theorem Ctx.split.left_length_decreasing {N: Type u} {T: Type v} [HasLin T]
   | discard _ HΓ => Nat.le_step HΓ.left_length_decreasing
   | dup _ _ _ HΓ => Nat.succ_le_succ HΓ.left_length_decreasing
 
-theorem Ctx.ssplit.left_length_decreasing {N: Type u} {T: Type v} [HasLin T]
-  {Γ Δ Ξ: Ctx N T} (H: ssplit Γ Δ Ξ): Δ.length ≤ Γ.length
-  := H.toSplit.left_length_decreasing
-
 theorem Ctx.split.right_length_decreasing {N: Type u} {T: Type v} [HasLin T]
   {Γ Δ Ξ: Ctx N T} (H: split Γ Δ Ξ): Ξ.length ≤ Γ.length
   := H.swap.left_length_decreasing
-
-theorem Ctx.ssplit.right_length_decreasing {N: Type u} {T: Type v} [HasLin T]
-  {Γ Δ Ξ: Ctx N T} (H: ssplit Γ Δ Ξ): Ξ.length ≤ Γ.length
-  := H.toSplit.right_length_decreasing
 
 def Ctx.wk {N: Type u} {T: Type v} [HasLin T] (Γ Δ: Ctx N T)
   := Ctx.split Γ Δ []
@@ -432,73 +337,73 @@ theorem Ctx.var.name {N: Type u} {T: Type v} [HasLin T] {Γ: Ctx N T} {v}
   | head ⟨H, _, _⟩ _ => H ▸ name.head _ _ _ _
   | tail _ W => name.tail _ (var.name W)
 
-def Ctx.split.left_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  : Ctx.split Γ Δ Ξ
-  -> (Δ': Ctx N T) × Ctx.ssplit Γ Δ' Ξ × Ctx.wk Δ' Δ
-  | nil => ⟨[], ssplit.nil, wk.nil⟩
-  | left Hl H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
-    ⟨_::Δ', ssplit.left Hl HΓ, wk.scons _ HΔ⟩
-  | right Hr H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
-    ⟨Δ', ssplit.right Hr HΓ, HΔ⟩
-  | discard Ha H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
-    ⟨_::Δ', ssplit.sleft _ HΓ, wk.discard Ha HΔ⟩
-  | dup Hrel Hl Hr H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
-    ⟨_::Δ', ssplit.dup Hrel Hl Hr HΓ, wk.scons _ HΔ⟩
+-- def Ctx.split.left_decompose {T: Type u} [HasLin T] {Γ Δ Ξ: Ctx N T}
+--   : Ctx.split Γ Δ Ξ
+--   -> (Δ': Ctx N T) × Ctx.ssplit Γ Δ' Ξ × Ctx.wk Δ' Δ
+--   | nil => ⟨[], ssplit.nil, wk.nil⟩
+--   | left Hl H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
+--     ⟨_::Δ', ssplit.left Hl HΓ, wk.scons _ HΔ⟩
+--   | right Hr H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
+--     ⟨Δ', ssplit.right Hr HΓ, HΔ⟩
+--   | discard Ha H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
+--     ⟨_::Δ', ssplit.sleft _ HΓ, wk.discard Ha HΔ⟩
+--   | dup Hrel Hl Hr H => let ⟨Δ', HΓ, HΔ⟩ := left_decompose H;
+--     ⟨_::Δ', ssplit.dup Hrel Hl Hr HΓ, wk.scons _ HΔ⟩
 
-def Ctx.split.right_decompose {N: Type u} {T: Type v} [HasLin T]
-  {Γ Δ Ξ: Ctx N T}: Ctx.split Γ Δ Ξ
-    -> (Ξ': Ctx N T) × Ctx.ssplit Γ Δ Ξ' × Ctx.wk Ξ' Ξ
-  | nil => ⟨[], ssplit.nil, wk.nil⟩
-  | left Hl H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
-    ⟨Ξ', ssplit.left Hl HΓ, HΞ⟩
-  | right Hr H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
-    ⟨_::Ξ', ssplit.right Hr HΓ, wk.scons _ HΞ⟩
-  | discard Ha H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
-    ⟨_::Ξ', ssplit.right (le_refl _) HΓ, wk.discard Ha HΞ⟩
-  | dup Hrel Hl Hr H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
-    ⟨_::Ξ', ssplit.dup Hrel Hl Hr HΓ, wk.scons _ HΞ⟩
+-- def Ctx.split.right_decompose {N: Type u} {T: Type v} [HasLin T]
+--   {Γ Δ Ξ: Ctx N T}: Ctx.split Γ Δ Ξ
+--     -> (Ξ': Ctx N T) × Ctx.ssplit Γ Δ Ξ' × Ctx.wk Ξ' Ξ
+--   | nil => ⟨[], ssplit.nil, wk.nil⟩
+--   | left Hl H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
+--     ⟨Ξ', ssplit.left Hl HΓ, HΞ⟩
+--   | right Hr H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
+--     ⟨_::Ξ', ssplit.right Hr HΓ, wk.scons _ HΞ⟩
+--   | discard Ha H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
+--     ⟨_::Ξ', ssplit.right (le_refl _) HΓ, wk.discard Ha HΞ⟩
+--   | dup Hrel Hl Hr H => let ⟨Ξ', HΓ, HΞ⟩ := right_decompose H;
+--     ⟨_::Ξ', ssplit.dup Hrel Hl Hr HΓ, wk.scons _ HΞ⟩
 
-def Ctx.ssplit.distribute_left {N: Type u} {T: Type v} [HasLin T]
-  {Γ Γ' Δ Ξ: Ctx N T}: Ctx.wk Γ' Γ -> Ctx.ssplit Γ Δ Ξ
-    -> (Δ': Ctx N T) × Ctx.ssplit Γ' Δ' Ξ × Ctx.wk Δ' Δ
-  | wk.nil, nil => ⟨[], ssplit.nil, wk.nil⟩
+def Ctx.Split.distribute_left {N: Type u} {T: Type v} [HasLin T]
+  {Γ Γ' Δ Ξ: Ctx N T}: Ctx.wk Γ' Γ -> Ctx.Split Γ Δ Ξ
+    -> (Δ': Ctx N T) × Ctx.Split Γ' Δ' Ξ × Ctx.wk Δ' Δ
+  | wk.nil, nil => ⟨[], nil, wk.nil⟩
   | wk.cons Hc W, left Hl S =>
     let ⟨_, HΓ, HΔ⟩ := distribute_left W S;
     ⟨_,
-      ssplit.left (le_trans Hl Hc) HΓ,
+      left (le_trans Hl Hc) HΓ,
       wk.scons _ HΔ⟩
   | wk.cons Hc W, right Hr S =>
     let ⟨_, HΓ, HΔ⟩ := distribute_left W S;
     ⟨_,
-      ssplit.right (le_trans Hr Hc) HΓ,
+      right (le_trans Hr Hc) HΓ,
       HΔ⟩
-  | wk.cons Hc W, dup Hrel Hl Hr S =>
+  | wk.cons Hc W, both Hb S =>
     let ⟨_, HΓ, HΔ⟩ := distribute_left W S;
     ⟨_,
-      ssplit.dup (Var.le.rel Hc Hrel) (le_trans Hl Hc) (le_trans Hr Hc) HΓ,
+      both ⟨Var.le.rel Hc Hb.1, le_trans Hb.2.1 Hc, le_trans Hb.2.2 Hc⟩ HΓ,
       wk.scons _ HΔ⟩
   | wk.discard Ha W, S =>
     let ⟨_, HΓ, HΔ⟩ := distribute_left W S;
     ⟨_, sleft _ HΓ, wk.discard Ha HΔ⟩
 
-def Ctx.ssplit.distribute_right {N: Type u} {T: Type v} [HasLin T]
-  {Γ Γ' Δ Ξ: Ctx N T}: Ctx.wk Γ' Γ -> Ctx.ssplit Γ Δ Ξ
-    -> (Ξ': Ctx N T) × Ctx.ssplit Γ' Δ Ξ' × Ctx.wk Ξ' Ξ
-  | wk.nil, nil => ⟨[], ssplit.nil, wk.nil⟩
+def Ctx.Split.distribute_right {N: Type u} {T: Type v} [HasLin T]
+  {Γ Γ' Δ Ξ: Ctx N T}: Ctx.wk Γ' Γ -> Ctx.Split Γ Δ Ξ
+    -> (Ξ': Ctx N T) × Ctx.Split Γ' Δ Ξ' × Ctx.wk Ξ' Ξ
+  | wk.nil, nil => ⟨[], nil, wk.nil⟩
   | wk.cons Hc W, left Hl S =>
     let ⟨_, HΓ, HΞ⟩ := distribute_right W S;
     ⟨_,
-      ssplit.left (le_trans Hl Hc) HΓ,
+      left (le_trans Hl Hc) HΓ,
       HΞ⟩
   | wk.cons Hc W, right Hr S =>
     let ⟨_, HΓ, HΞ⟩ := distribute_right W S;
     ⟨_,
-      ssplit.right (le_trans Hr Hc) HΓ,
+      right (le_trans Hr Hc) HΓ,
       wk.scons _ HΞ⟩
-  | wk.cons Hc W, dup Hrel Hl Hr S =>
+  | wk.cons Hc W, both Hd S =>
     let ⟨_, HΓ, HΞ⟩ := distribute_right W S;
     ⟨_,
-      ssplit.dup (Var.le.rel Hc Hrel) (le_trans Hl Hc) (le_trans Hr Hc) HΓ,
+      both ⟨Var.le.rel Hc Hd.1, le_trans Hd.2.1 Hc, le_trans Hd.2.2 Hc⟩ HΓ,
       wk.scons _ HΞ⟩
   | wk.discard Ha W, S =>
     let ⟨_, HΓ, HΞ⟩ := distribute_right W S;
@@ -624,22 +529,6 @@ def Ctx.Split.drop_right {N: Type u} {T: Type v} [HasLin T]
   | right Hr HΓ, HΞ => wk.cons Hr (drop_right HΓ HΞ)
   | both Hd HΓ, wk.discard _ HΞ => wk.cons (Hd.2.2) (drop_right HΓ HΞ)
 
-def Ctx.ssplit.drop_left {N: Type u} {T: Type v} [HasLin T]
-  {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Ξ.wk [] -> Γ.wk Δ
-  | nil, _ => wk.nil
-  | left Hl HΓ, HΞ
-  | dup _ Hl _ HΓ, wk.discard _ HΞ => wk.cons Hl (drop_left HΓ HΞ)
-  | right Hr HΓ, wk.discard Hr' HΞ =>
-    wk.discard (Var.le.aff Hr Hr') (drop_left HΓ HΞ)
-
-def Ctx.ssplit.drop_right {N: Type u} {T: Type v} [HasLin T]
-  {Γ Δ Ξ: Ctx N T}: Γ.ssplit Δ Ξ -> Δ.wk [] -> Γ.wk Ξ
-  | nil, _ => wk.nil
-  | left Hl HΓ, wk.discard Hl' HΞ =>
-    wk.discard (Var.le.aff Hl Hl') (drop_right HΓ HΞ)
-  | right Hr HΓ, HΞ
-  | dup _ _ Hr HΓ, wk.discard _ HΞ => wk.cons Hr (drop_right HΓ HΞ)
-
 def Ctx.Split.assoc {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Split Γ Δ Ξ
     -> Split Δ Θ Φ
@@ -651,68 +540,6 @@ def Ctx.Split.assoc_inv {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
     -> Split Ξ Θ Φ
     -> (Ψ: _) ×' (_: Split Γ Ψ Φ) ×' Split Ψ Δ Θ
   := Splittable.splitAssoc_inv
-
-def Ctx.ssplit.associate_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
-  Ctx.ssplit Γ Δ Ξ
-    -> Ctx.ssplit Ξ Θ Φ
-    -> (Ψ: _) × Ctx.ssplit Γ Ψ Φ × Ctx.ssplit Ψ Δ Θ
-  | S, nil => ⟨Δ, S, list_left Δ⟩
-  | left Hl S, S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ, left Hl Sl, sleft _ Sr⟩
-  | right Hr S, left Hl S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ, left (le_trans Hl Hr) Sl, sright _ Sr⟩
-  | right Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨Ψ, right (le_trans Hr' Hr) Sl, Sr⟩
-  | right Hr S, dup Hrel Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ,
-      dup (Var.le.rel Hr Hrel) (le_trans Hl' Hr) (le_trans Hr' Hr) Sl,
-      sright _ Sr⟩
-  | dup Hrel Hl Hr S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ, sleft _ Sl, dup Hrel Hl (le_trans Hl' Hr) Sr⟩
-  | dup Hrel Hl Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ, dup Hrel Hl (le_trans Hr' Hr) Sl, sleft _ Sr⟩
-  | dup Hrel Hl Hr S, dup Hrel' Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_left S S';
-    ⟨_::Ψ,
-      dup Hrel (le_refl _) (le_trans Hr' Hr) Sl,
-      dup Hrel Hl (le_trans Hl' Hr) Sr⟩
-
-def Ctx.ssplit.associate_right {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
-  Ctx.ssplit Γ Δ Ξ
-    -> Ctx.ssplit Δ Θ Φ
-    -> (Ψ: _) × Ctx.ssplit Γ Θ Ψ × Ctx.ssplit Ψ Φ Ξ
-  | S, nil => ⟨Γ, list_right Γ, S⟩
-  | left Hl S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨Ψ, left (le_trans Hl' Hl) Sl, Sr⟩
-  | left Hl S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ, right (le_trans Hr' Hl) Sl, sleft _ Sr⟩
-  | left Hl S, dup Hrel Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ,
-      dup (Var.le.rel Hl Hrel) (le_trans Hl' Hl) (le_trans Hr' Hl) Sl,
-      sleft _ Sr⟩
-  | right Hl S, S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ, right Hl Sl, sright _ Sr⟩
-  | dup Hrel Hl Hr S, left Hl' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ, dup Hrel (le_trans Hl' Hl) Hr Sl, sright _ Sr⟩
-  | dup Hrel Hl Hr S, right Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ, sright _ Sl, dup Hrel (le_trans Hr' Hl) Hr Sr⟩
-  | dup Hrel Hl Hr S, dup Hrel' Hl' Hr' S' =>
-    let ⟨Ψ, Sl, Sr⟩ := associate_right S S';
-    ⟨_::Ψ,
-      dup Hrel (le_trans Hl' Hl) (le_refl _) Sl,
-      dup Hrel (le_trans Hr' Hl) Hr Sr⟩
 
 def Ctx.Split.permute_1234_1324 {N T} [HasLin T]
   {Θ1234 Θ12 Θ34 Θ1 Θ2 Θ3 Θ4: Ctx N T}:
@@ -735,95 +562,87 @@ def Ctx.Split.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
 
 --TODO: port more explicit implementation to SplitOrWk?
 
-def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
-  Ctx.ssplit Γ Δ Ξ
-    -> Ctx.ssplit Δ Θ1 Θ2
-    -> Ctx.ssplit Ξ Θ3 Θ4
-    -> (Θ13 Θ24: _)
-      × Ctx.ssplit Γ Θ13 Θ24
-      × Ctx.ssplit Θ13 Θ1 Θ3
-      × Ctx.ssplit Θ24 Θ2 Θ4
-  | nil, nil, nil => ⟨[], [], nil, nil, nil⟩
-  | left Hl SΓ, left Hl' S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24, left Hl S1324, left Hl' S13, S24⟩
-  | left Hl SΓ, right Hr' S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24, right Hl S1324, S13, left Hr' S24⟩
-  | left Hl SΓ, dup Hrel Hl' Hr' S12, S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup (Var.le.rel Hl Hrel) S1324,
-      left (le_trans Hl' Hl) S13,
-      left (le_trans Hr' Hl) S24⟩
-  | right Hr SΓ, S12, left Hl' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24, left Hr S1324, right Hl' S13, S24⟩
-  | right Hr SΓ, S12, right Hr' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24, right Hr S1324, S13, right Hr' S24⟩
-  | right Hr SΓ, S12, dup Hrel Hl' Hr' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup (Var.le.rel Hr Hrel) S1324,
-      right (le_trans Hl' Hr) S13,
-      right (le_trans Hr' Hr) S24⟩
-  | dup Hrel Hl Hr SΓ, left Hl' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, Θ24,
-      sleft _ S1324,
-      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
-      S24⟩
-  | dup Hrel Hl Hr SΓ, right Hr' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      dup Hrel Hr Hl S1324,
-      right Hl'' S13,
-      left Hr' S24⟩
-  | dup Hrel Hl Hr SΓ, dup Hrel' Hl' Hr' S12, left Hl'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup Hrel S1324,
-      dup (Var.le.rel Hl Hrel') (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
-      left (le_trans Hr' Hl) S24⟩
-  | dup Hrel Hl Hr SΓ, left Hl' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24, dup Hrel Hl Hr S1324, left Hl' S13, right Hr'' S24⟩
-  | dup Hrel Hl Hr SΓ, right Hr' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨Θ13, _::Θ24,
-      sright _ S1324,
-      S13,
-      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
-  | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, right Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup Hrel S1324,
-      left (le_trans Hl' Hl) S13,
-      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
-  | dup Hrel Hl Hr SΓ, left Hl' S12, dup Hrel'' Hl'' Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup Hrel S1324,
-      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
-      right (le_trans Hr'' Hr) S24⟩
-  | dup Hrel Hl Hr SΓ, right Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup Hrel S1324,
-      right (le_trans Hl'' Hr) S13,
-      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
-  | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
-    let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
-    ⟨_::Θ13, _::Θ24,
-      sdup Hrel S1324,
-      dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
-      dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
-
-def Ctx.ssplit.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
-  (S: Ctx.ssplit Γ Δ Ξ) (S': Ctx.ssplit Δ Θ Φ) (H: Ξ.rel)
-  : (Θ13 Θ24: _)
-      × Ctx.ssplit Γ Θ13 Θ24
-      × Ctx.ssplit Θ13 Θ Ξ
-      × Ctx.ssplit Θ24 Φ Ξ
-  := @permute_1234_1324 N T _ Γ Δ Ξ Θ Φ Ξ Ξ S S' (list_dup H)
+-- def Ctx.ssplit.permute_1234_1324 {N T} [HasLin T] {Γ Δ Ξ Θ1 Θ2 Θ3 Θ4: Ctx N T}:
+--   Ctx.ssplit Γ Δ Ξ
+--     -> Ctx.ssplit Δ Θ1 Θ2
+--     -> Ctx.ssplit Ξ Θ3 Θ4
+--     -> (Θ13 Θ24: _)
+--       × Ctx.ssplit Γ Θ13 Θ24
+--       × Ctx.ssplit Θ13 Θ1 Θ3
+--       × Ctx.ssplit Θ24 Θ2 Θ4
+--   | nil, nil, nil => ⟨[], [], nil, nil, nil⟩
+--   | left Hl SΓ, left Hl' S12, S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, Θ24, left Hl S1324, left Hl' S13, S24⟩
+--   | left Hl SΓ, right Hr' S12, S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨Θ13, _::Θ24, right Hl S1324, S13, left Hr' S24⟩
+--   | left Hl SΓ, dup Hrel Hl' Hr' S12, S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup (Var.le.rel Hl Hrel) S1324,
+--       left (le_trans Hl' Hl) S13,
+--       left (le_trans Hr' Hl) S24⟩
+--   | right Hr SΓ, S12, left Hl' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, Θ24, left Hr S1324, right Hl' S13, S24⟩
+--   | right Hr SΓ, S12, right Hr' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨Θ13, _::Θ24, right Hr S1324, S13, right Hr' S24⟩
+--   | right Hr SΓ, S12, dup Hrel Hl' Hr' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup (Var.le.rel Hr Hrel) S1324,
+--       right (le_trans Hl' Hr) S13,
+--       right (le_trans Hr' Hr) S24⟩
+--   | dup Hrel Hl Hr SΓ, left Hl' S12, left Hl'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, Θ24,
+--       sleft _ S1324,
+--       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+--       S24⟩
+--   | dup Hrel Hl Hr SΓ, right Hr' S12, left Hl'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       dup Hrel Hr Hl S1324,
+--       right Hl'' S13,
+--       left Hr' S24⟩
+--   | dup Hrel Hl Hr SΓ, dup Hrel' Hl' Hr' S12, left Hl'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup Hrel S1324,
+--       dup (Var.le.rel Hl Hrel') (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+--       left (le_trans Hr' Hl) S24⟩
+--   | dup Hrel Hl Hr SΓ, left Hl' S12, right Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24, dup Hrel Hl Hr S1324, left Hl' S13, right Hr'' S24⟩
+--   | dup Hrel Hl Hr SΓ, right Hr' S12, right Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨Θ13, _::Θ24,
+--       sright _ S1324,
+--       S13,
+--       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+--   | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, right Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup Hrel S1324,
+--       left (le_trans Hl' Hl) S13,
+--       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+--   | dup Hrel Hl Hr SΓ, left Hl' S12, dup Hrel'' Hl'' Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup Hrel S1324,
+--       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+--       right (le_trans Hr'' Hr) S24⟩
+--   | dup Hrel Hl Hr SΓ, right Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup Hrel S1324,
+--       right (le_trans Hl'' Hr) S13,
+--       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
+--   | dup Hrel Hl Hr SΓ, dup _ Hl' Hr' S12, dup Hrel'' Hl'' Hr'' S34 =>
+--     let ⟨Θ13, Θ24, S1324, S13, S24⟩ := permute_1234_1324 SΓ S12 S34;
+--     ⟨_::Θ13, _::Θ24,
+--       sdup Hrel S1324,
+--       dup Hrel (le_trans Hl' Hl) (le_trans Hl'' Hr) S13,
+--       dup Hrel (le_trans Hr' Hl) (le_trans Hr'' Hr) S24⟩
