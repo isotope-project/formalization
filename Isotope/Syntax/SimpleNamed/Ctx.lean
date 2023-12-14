@@ -45,27 +45,46 @@ instance Var.instDroppable {N: Type u} {T: Type v} [HasLin T]
   : Droppable.{_, 0} (Var N T) where
   Drop v := HasLin.aff v
 
-instance Var.instWeakenable {N: Type u} {T: Type v}
-  : Weakenable.{_, 0} (Var N T)
-  := PRes.instWeakenable
+instance Var.instWkns {N: Type u} {T: Type v}
+  : Wkns.{_, 0} (Var N T)
+  := PRes.instWkns
 
-instance Var.instCSplitWk {N: Type u} {T: Type v} [HasLin T]
-  : CSplitWk.{_, 0, 0} (Var N T) where
+instance Var.instSplits {N: Type u} {T: Type v} [HasLin T]
+  : Splits.{_, 0} (Var N T) where
   Split v x y := HasLin.rel v ∧ v ≥ x ∧ v ≥ y
   splitSymm s := ⟨s.1, s.2.2, s.2.1⟩
   splitAssoc | ⟨R123, Ha12, Ha3⟩, ⟨_, Ha1, Ha2⟩ => ⟨_,
     ⟨R123, le_trans Ha1 Ha12, le_refl _⟩,
     ⟨R123, le_trans Ha2 Ha12, Ha3⟩⟩
+  -- wkSplit | w, s => ⟨le.rel w s.1, le_trans s.2.1 w, le_trans s.2.2 w⟩
+  -- splitWkLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
+  -- splitWkRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
+
+instance Var.instMergeWk {N: Type u} {T: Type v} [HasLin T]
+  : MergeWk.{_, 0} (Var N T) where
   wkSplit | w, s => ⟨le.rel w s.1, le_trans s.2.1 w, le_trans s.2.2 w⟩
   splitWkLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
   splitWkRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
 
 def Ctx (N: Type u) (T: Type v) := List (Var N T)
 
-instance Ctx.instCSplitWk {N: Type u} {T: Type v} [HasLin T]
-  : CSplitWk (Ctx N T)
-  := SplitOrWk.instCSplitWk
+instance Ctx.instSplits {N: Type u} {T: Type v} [HasLin T]
+  : Splits (Ctx N T)
+  := SplitOrWk.instSplits
+
+instance Ctx.instWkns {N: Type u} {T: Type v} [HasLin T]
+  : Wkns (Ctx N T)
+  := SplitOrWk.instWkns
+
+instance Ctx.instMergeWk {N: Type u} {T: Type v} [HasLin T]
+  : MergeWk (Ctx N T)
+  := SplitOrWk.instMergeWk
   --TODO: support discarding...
+
+-- instance Ctx.instCSplitWk {N: Type u} {T: Type v} [HasLin T]
+--   : CSplitWk (Ctx N T)
+--   := SplitOrWk.instCSplitWk
+--   --TODO: support discarding...
 
 instance Ctx.instAppend {N T}: Append (Ctx N T) := List.instAppendList
 
@@ -177,7 +196,7 @@ def Ctx.split.sdup {N: Type u} {T: Type v}[HasLin T] {Γ Δ Ξ: Ctx N T}
 
 def Ctx.Split.{u, v} {N: Type u} {T: Type v} [HasLin T]
   : Ctx N T → Ctx N T → Ctx N T → Type _
-  := Ctx.instCSplitWk.Split
+  := Ctx.instSplits.Split
 
 @[match_pattern]
 def Ctx.Split.nil {N: Type u} {T: Type v} [HasLin T]: @Split N T _ [] [] []
@@ -192,7 +211,7 @@ def Ctx.Split.right {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   := SplitOrWk.Split.right Hr H
 @[match_pattern]
 def Ctx.Split.both {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
-  {v l r: Var N T} (Hd: Splittable.Split v l r) (H: Split Γ Δ Ξ)
+  {v l r: Var N T} (Hd: Splits.Split v l r) (H: Split Γ Δ Ξ)
     : Split (v::Γ) (l::Δ) (r::Ξ)
   := SplitOrWk.Split.both Hd H
 @[match_pattern]
@@ -215,7 +234,7 @@ def Ctx.Split.sboth {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
 
 abbrev Ctx.Split.symm {N: Type u} {T: Type v} [HasLin T] {Γ Δ Ξ: Ctx N T}
   : Split Γ Δ Ξ -> Split Γ Ξ Δ
-  := Splittable.splitSymm
+  := Splits.splitSymm
 
 def Ctx.Split.list_left {N T} [HasLin T]
   : (Γ: Ctx N T) -> Γ.Split Γ []
@@ -533,13 +552,13 @@ def Ctx.Split.assoc {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Split Γ Δ Ξ
     -> Split Δ Θ Φ
     -> (Ψ: _) ×' (_: Split Γ Θ Ψ) ×' Split Ψ Φ Ξ
-  := Splittable.splitAssoc
+  := Splits.splitAssoc
 
 def Ctx.Split.assoc_inv {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}:
   Split Γ Δ Ξ
     -> Split Ξ Θ Φ
     -> (Ψ: _) ×' (_: Split Γ Ψ Φ) ×' Split Ψ Δ Θ
-  := Splittable.splitAssoc_inv
+  := Splits.splitAssoc_inv
 
 def Ctx.Split.permute_1234_1324 {N T} [HasLin T]
   {Θ1234 Θ12 Θ34 Θ1 Θ2 Θ3 Θ4: Ctx N T}:
@@ -550,7 +569,7 @@ def Ctx.Split.permute_1234_1324 {N T} [HasLin T]
       ×' (_: Split Θ1234 Θ13 Θ24)
       ×' (_: Split Θ13 Θ1 Θ3)
       ×' Split Θ24 Θ2 Θ4
-  := Splittable.permute_1234_1324
+  := Splits.permute_1234_1324
 
 def Ctx.Split.distribute_dup_left {N T} [HasLin T] {Γ Δ Ξ Θ Φ: Ctx N T}
   (S: Split Γ Δ Ξ) (S': Split Δ Θ Φ) (H: Ξ.rel)

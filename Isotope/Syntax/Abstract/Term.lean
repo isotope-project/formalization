@@ -6,10 +6,10 @@ open CategoryTheory
 namespace Abstract
 
 class Lang.{u, v, ss, sj, sv, sb, si, sc} (C: Type u)
-  extends Splittable.{u, ss} C
+  extends Splits.{u, ss} C
   where
   Ty: Type v
-  pair: Joinable.{v, sj} Ty
+  pair: Joins.{v, sj} Ty
   inst: Quiver.{si} Ty
   cnst: C -> Ty -> Sort sc
   var: C -> Ty -> Sort sv
@@ -23,7 +23,7 @@ inductive Term.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   | op {Γ A B}: L.inst.Hom A B -> Term Γ A -> Term Γ B
   | cnst {Γ A}: L.cnst Γ A -> Term Γ A
   | pair {Γ Δ Ξ A B C}: L.Split Γ Δ Ξ ->
-    Term Δ A -> Term Ξ B -> L.pair.Joins A B C ->
+    Term Δ A -> Term Ξ B -> L.pair.Join A B C ->
     Term Γ C
   | bind {Γ Δ Ξ A AΔ B}: L.Split Γ Δ Ξ ->
     L.bind A Δ AΔ ->
@@ -39,7 +39,7 @@ class Upcastable (C: Type v) [L: Lang C]
     : Upcast B B' -> L.inst.Hom A B -> L.inst.Hom A B'
   upcastCnst {Γ A B}: Upcast A B -> L.cnst Γ A -> L.cnst Γ B
   upcastPair {A' A B C }
-    : Upcast A A' -> L.pair.Joins B C A -> L.pair.Joins B C A'
+    : Upcast A A' -> L.pair.Join B C A -> L.pair.Join B C A'
 
 def Term.upcast.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   [L: Lang.{u, v, ss, sj, sv, sb, si, sc} C]

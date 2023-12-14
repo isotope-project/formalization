@@ -5,7 +5,7 @@ open CategoryTheory
 
 namespace Abstract
 
-class Splittable.{u, v} (A: Type u): Type (max u v) where
+class Splits.{u, v} (A: Type u): Type (max u v) where
   Split: A -> A -> A -> Sort v
   splitSymm {a b c: A}: Split a b c -> Split a c b
   splitAssoc {a123 a12 a1 a2 a3: A}:
@@ -30,31 +30,52 @@ class Splittable.{u, v} (A: Type u): Type (max u v) where
         let ⟨a13, s13_24, s1_3⟩ := splitAssoc_inv s1_234 s32_4;
         ⟨a13, a24, s13_24, s1_3, s2_4⟩
 
-class Joinable.{u, v} (A: Type u): Type (max u v) where
-  Joins: A -> A -> A -> Sort v
-  joinsSymm {a b c: A}: Joins a b c -> Joins b a c
-  joinsAssoc {a123 a12 a1 a2 a3: A}:
-    Joins a12 a3 a123 -> Joins a1 a2 a12 ->
-      (a23: A) ×' (_: Joins a1 a23 a123) ×' (Joins a2 a3 a23)
-  joinsAssoc_inv {a123 a23 a1 a2 a3}:
-    Joins a1 a23 a123 -> Joins a2 a3 a23 ->
-      (a12: A) ×' (_: Joins a12 a3 a123) ×' (Joins a1 a2 a12)
-      := λJ1 J2 =>
-        let ⟨a21, J1, J2⟩ := joinsAssoc (joinsSymm J1) (joinsSymm J2)
-        ⟨a21, joinsSymm J1, joinsSymm J2⟩
+open Splits
 
-class Weakenable.{u, v} (A: Type u): Type (max u v) where
+instance instSplitsUnit: Splits Unit where
+  Split _ _ _ := Unit
+  splitSymm _ := ()
+  splitAssoc _ _ := ⟨(), (), ()⟩
+
+class Joins.{u, v} (A: Type u): Type (max u v) where
+  Join: A -> A -> A -> Sort v
+  joinSymm {a b c: A}: Join a b c -> Join b a c
+  joinAssoc {a123 a12 a1 a2 a3: A}:
+    Join a12 a3 a123 -> Join a1 a2 a12 ->
+      (a23: A) ×' (_: Join a1 a23 a123) ×' (Join a2 a3 a23)
+  joinAssoc_inv {a123 a23 a1 a2 a3}:
+    Join a1 a23 a123 -> Join a2 a3 a23 ->
+      (a12: A) ×' (_: Join a12 a3 a123) ×' (Join a1 a2 a12)
+      := λJ1 J2 =>
+        let ⟨a21, J1, J2⟩ := joinAssoc (joinSymm J1) (joinSymm J2)
+        ⟨a21, joinSymm J1, joinSymm J2⟩
+
+open Joins
+
+instance instJoinsUnit: Joins Unit where
+  Join _ _ _ := Unit
+  joinSymm _ := ()
+  joinAssoc _ _ := ⟨(), (), ()⟩
+
+class Wkns.{u, v} (A: Type u): Type (max u v) where
   Wk: A -> A -> Sort v
   wkId: (a: A) -> Wk a a
   wkTrans {a b c: A}: Wk a b -> Wk b c -> Wk a c
 
+open Wkns
+
+instance instWknsUnit: Wkns Unit where
+  Wk _ _ := Unit
+  wkId _ := ()
+  wkTrans _ _ := ()
+
 def Wks (A: Type u) := A
 
-instance Wks.instQuiver {A: Type u} [W: Weakenable A]
+instance Wks.instQuiver {A: Type u} [W: Wkns A]
   : Quiver (Wks A) where
   Hom := W.Wk
 
-instance Wks.instCategoryStruct {A: Type u} [W: Weakenable.{u, v+1} A]
+instance Wks.instCategoryStruct {A: Type u} [W: Wkns.{u, v+1} A]
   : CategoryStruct (Wks A) where
   id := W.wkId
   comp := W.wkTrans
@@ -62,72 +83,106 @@ instance Wks.instCategoryStruct {A: Type u} [W: Weakenable.{u, v+1} A]
 class Droppable.{u, v} (A: Type u) where
   Drop: A -> Sort v
 
-class SplitWk.{u, v, w} (A: Type u)
-  extends Splittable.{u, v} A, Weakenable.{u, w} A
+class DropWk.{u, v} (A: Type u) [Wkns.{u, w} A]
+  extends Droppable.{u, v} A
+  where
+  dropWk {a b: A}: Wk a b -> Drop a -> Drop b
+
+class DistWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
+  where
+  distWk {a' a b c: A}: Wk a' a -> Split a b c
+    -> (b' c': A) ×' (_: Split a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
+
+open DistWk
+
+class BiasedDistWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
+  extends DistWk A
   where
   wkLeft {a' a b c: A}: Wk a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
   wkRight {a' a b c: A}: Wk a' a -> Split a b c
     -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
-    := λW S =>
-      let ⟨c', Ss, W⟩ := wkLeft W (splitSymm S);
-      ⟨c', splitSymm Ss, W⟩
+    := λw s =>
+      let ⟨c', s, W⟩ := wkLeft w (splitSymm s);
+      ⟨c', splitSymm s, W⟩
+  distWk w s :=
+      let ⟨c', s, w⟩ := wkLeft w s;
+      ⟨c', _, s, w, wkId _⟩
+
+open BiasedDistWk
+
+instance instBiasedDistWkUnit: BiasedDistWk Unit where
+  wkLeft _ _ := ⟨(), (), ()⟩
+
+class SplitWk.{u, v, w} (A: Type u)
+  extends Splits.{u, v} A, Wkns.{u, w} A, BiasedDistWk.{u, v, w} A
   --TODO: distributive variant?
 
-class CSplitWk.{u, v, w} (A: Type u)
-  extends Splittable.{u, v} A, Weakenable.{u, w} A
+class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
+  extends BiasedDistWk.{u, s, w} A
   where
   wkSplit {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
   splitWkLeft {a b c b': A}
     : Split a b c -> Wk b b' -> Split a b' c
   splitWkRight {a b c c': A}
     : Split a b c -> Wk c c' -> Split a b c'
-    := λS W => splitSymm (splitWkLeft (splitSymm S) W)
+    := λs w => splitSymm (splitWkLeft (splitSymm s) w)
+  splitWk {a b c b' c': A}
+    : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
+    := λs wl wr => splitWkRight (splitWkLeft s wl) wr
+  wkLeft w s := ⟨_, wkSplit w s, wkId _⟩
+  wkRight w s := ⟨_, wkSplit w s, wkId _⟩
+  distWk w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
 
-instance CSplitWk.instSplitWk {A} [W: CSplitWk A]: SplitWk A where
-  wkLeft w s := ⟨_, wkSplit w s, W.wkId _⟩
-  wkRight w s := ⟨_, wkSplit w s, W.wkId _⟩
+open MergeWk
+
+class CSplitWk (A: Type u)
+  extends Splits.{u, v} A, Wkns.{u, w} A, MergeWk.{u, v, w} A
+
+-- instance CSplitWk.instSplitWk {A} [W: CSplitWk A]: SplitWk A where
+--   wkLeft w s := ⟨_, wkSplit w s, W.wkId _⟩
+--   wkRight w s := ⟨_, wkSplit w s, W.wkId _⟩
 
 def ESRes (A: Type u) := A
 
-instance ESRes.instSplittable {A}: Splittable (ESRes A) where
+instance ESRes.instSplits {A}: Splits (ESRes A) where
   Split a b c := b = a ∧ c = a
   splitSymm | ⟨_, _⟩ => by simp [*]
   splitAssoc | ⟨_, _⟩, ⟨_, _⟩ => ⟨_, ⟨by simp [*], rfl⟩, by simp [*]⟩
 
-instance ESRes.instWeakenable {A} [W: Weakenable A]: Weakenable (ESRes A)
+instance ESRes.instWkns {A} [W: Wkns A]: Wkns (ESRes A)
   := W
 
 def EWRes (A: Type u) := A
 
-instance EWRes.instWeakenable {A}: Weakenable (EWRes A) where
+instance EWRes.instWkns {A}: Wkns (EWRes A) where
   Wk := Eq
   wkTrans | rfl, rfl => rfl
   wkId _ := rfl
 
-instance EWRes.instSplittable {A} [S: Splittable A]
-  : Splittable (EWRes A) := S
+instance EWRes.instSplits {A} [S: Splits A]
+  : Splits (EWRes A) := S
 
-instance EWRes.instCSplitWk {A} [Splittable A]: CSplitWk (EWRes A) where
-  wkSplit | rfl, H => H
-  splitWkLeft | H, rfl => H
-  splitWkRight | H, rfl => H
+-- instance EWRes.instCSplitWk {A} [Splits A]: CSplitWk (EWRes A) where
+--   wkSplit | rfl, H => H
+--   splitWkLeft | H, rfl => H
+--   splitWkRight | H, rfl => H
 
 def PRes (A: Type u) := A
 
-instance PRes.instWeakenable {A} [P: PartialOrder A]: Weakenable (PRes A) where
+instance PRes.instWkns {A} [P: PartialOrder A]: Wkns (PRes A) where
   Wk a b := P.le b a
   wkTrans H H' := P.le_trans _ _ _ H' H
   wkId := P.le_refl
 
-instance PRes.instSplittable {A} [P: PartialOrder A]: Splittable (PRes A) where
+instance PRes.instSplits {A} [P: PartialOrder A]: Splits (PRes A) where
   Split a b c := P.le b a ∧ P.le c a
   splitSymm | ⟨_, _⟩ => by simp [*]
   splitAssoc | ⟨Ha12, Ha3⟩, ⟨Ha1, Ha2⟩ => ⟨_, -- a23 = a123
     ⟨le_trans Ha1 Ha12, le_refl _⟩,
     ⟨le_trans Ha2 Ha12, Ha3⟩⟩
 
-instance PRes.instCSplitWk {A} [PartialOrder A]: CSplitWk (PRes A) where
-  wkSplit | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
-  splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
-  splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩
+-- instance PRes.instCSplitWk {A} [PartialOrder A]: CSplitWk (PRes A) where
+--   wkSplit | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
+--   splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
+--   splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩
