@@ -88,8 +88,6 @@ class Splits.{u, v} (A: Type u): Type (max u v) where
 
 open Splits
 
---TODO: SSplits or Splats?
-
 instance instSplitsUnit: Splits Unit where
   Split _ _ _ := Unit
   splitSymm _ := ()
@@ -153,6 +151,37 @@ instance Wks.instCategoryStruct {A: Type u} [W: Wkns.{u, v+1} A]
   comp := W.wkTrans
 
 class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
+
+--TODO: Split ==> Splat
+--TODO: Splat ==> Split;(Wk × Wk)
+--TODO: Wk;Split ==> Splat
+class Splats.{u, v} (A: Type u) extends Splits.{u, v} A
+  : Type (max u v) where
+  Splat: A -> A -> A -> Sort v
+  splatSymm {a b c: A}: Splat a b c -> Splat a c b
+  splatAssoc {a123 a12 a1 a2 a3: A}:
+    Splat a123 a12 a3 -> Splat a12 a1 a2 ->
+      (a23: A) ×' (_: Splat a123 a1 a23) ×' (Splat a23 a2 a3)
+  splatAssoc_inv {a123 a23 a1 a2 a3}:
+    Splat a123 a1 a23 -> Splat a23 a2 a3 ->
+      (a12: A) ×' (_: Splat a123 a12 a3) ×' (Splat a12 a1 a2)
+      := λs1_23 s2_3 =>
+        let ⟨a21, s3_21, s2_1⟩ := splatAssoc (splatSymm s1_23) (splatSymm s2_3)
+        ⟨a21, splatSymm s3_21, splatSymm s2_1⟩
+  splatPermute_1234_1324 {a1234 a12 a34 a1 a2 a3 a4}:
+    Splat a1234 a12 a34 -> Splat a12 a1 a2 -> Splat a34 a3 a4 ->
+      (a13 a24: A)
+        ×' (_: Splat a1234 a13 a24)
+        ×' (_: Splat a13 a1 a3)
+        ×' (Splat a24 a2 a4)
+      := λs12_34 s1_2 s3_4 =>
+        let ⟨_a234, s1_234, s2_34⟩ := splatAssoc s12_34 s1_2;
+        let ⟨_a23, s23_4, s2_3⟩ := splatAssoc_inv s2_34 s3_4;
+        let ⟨a24, s32_4, s2_4⟩ := splatAssoc s23_4 (splatSymm s2_3);
+        let ⟨a13, s13_24, s1_3⟩ := splatAssoc_inv s1_234 s32_4;
+        ⟨a13, a24, s13_24, s1_3, s2_4⟩
+
+open Splats
 
 class Drops.{u, v} (A: Type u) where
   Drop: A -> Sort v
