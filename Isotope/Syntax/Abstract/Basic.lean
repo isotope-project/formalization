@@ -135,7 +135,7 @@ instance Wks.instQuiver {A: Type u} [W: Wkns A]
   : Quiver (Wks A) where
   Hom := W.Wk
 
-def Wks.quiver (A: Type u) [Wkns A]: Quiver (Wks A) := Wks.instQuiver
+def Wks.quiver (A: Type u) [Wkns A]: Quiver A := Wks.instQuiver
 
 instance Wks.instReflexiveQuiver {A} [W: Wkns A]
   : ReflexiveQuiver (Wks.quiver A) where
@@ -161,11 +161,17 @@ class DropArr.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Droppable.{u, w} A]
   where
   dropArr {a b: A}: Q.Hom a b -> Drop a -> Drop b
 
-class DropWk.{u, v, w} (A: Type u) [Wkns.{u, w} A]
-  extends Droppable.{u, v} A, DropArr.{u, w, v} A (Wks.quiver _)
-  where
-  dropWk {a b: A}: Wk a b -> Drop a -> Drop b := dropArr
-  dropArr := dropWk
+open DropArr
+
+class DropWk (A: Type u) [Wkns.{u, w} A]
+  extends Droppable A, DropArr A (Wks.quiver A)
+
+abbrev DropWk.dropWk {A: Type u}
+  [W: Wkns A] [D: DropWk A]
+  {a b: A} : W.Wk a b -> Drop a -> Drop b
+  := D.dropArr
+
+open DropWk
 
 --TODO: add instance?
 
@@ -182,10 +188,11 @@ open DistArr
 class DistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [W: Wkns.{u, w} A]
   extends DistArr A S (Wks.quiver A)
   where
-  distWk {a' a b c: A}: Wk a' a -> Split a b c
+
+abbrev DistWk.distWk {A} [Splits A] [Wkns A] [D: DistWk A]
+  {a' a b c: A}: Wk a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
-    := distArr
-  distArr := distWk
+  := D.distArr
 
 open DistWk
 
@@ -200,9 +207,6 @@ class BiasedDistArr.{u, s, w} (A: Type u)
     := λw s =>
       let ⟨c', s, W⟩ := distArrLeft w (splitSymm s);
       ⟨c', splitSymm s, W⟩
-  -- distWk w s :=
-  --     let ⟨c', s, w⟩ := wkLeft w s;
-  --     ⟨c', _, s, w, wkId _⟩
 
 open BiasedDistArr
 
@@ -216,26 +220,29 @@ instance BiasedDistArr.instDistArr {A: Type u} {S: Splits.{u, s} A}
 class BiasedDistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
   extends BiasedDistArr A S (Wks.quiver A), DistWk A
   where
-  wkLeft {a' a b c: A}: Wk a' a -> Split a b c
-    -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
-    := distArrLeft
-  wkRight {a' a b c: A}: Wk a' a -> Split a b c
-    -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
-    := distArrRight
-  distArrLeft := wkLeft
-  distArrRight := wkRight
   distArr w s :=
     let ⟨c', s, w⟩ := distArrLeft w s;
     ⟨c', _, s, w, wkId _⟩
-  distWk := distArr
+
+abbrev BiasedDistWk.wkLeft {A} [Splits A] [Wkns A] [D: BiasedDistWk A]
+   {a' a b c: A}: Wk a' a -> Split a b c
+    -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
+   := D.distArrLeft
+
+abbrev BiasedDistWk.wkRight {A} [Splits A] [Wkns A] [D: BiasedDistWk A]
+  {a' a b c: A}: Wk a' a -> Split a b c
+    -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
+  := D.distArrRight
 
 open BiasedDistWk
 
 instance instBiasedDistWkUnit: BiasedDistWk Unit where
-  wkLeft _ _ := ⟨(), (), ()⟩
+  distArrLeft _ _ := ⟨(), (), ()⟩
 
 -- class SplitWk.{u, v, w} (A: Type u)
 --   extends Splits.{u, v} A, Wkns.{u, w} A, BiasedDistWk.{u, v, w} A
+
+-- open MergeArr
 
 class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
   extends BiasedDistWk.{u, s, w} A
@@ -249,9 +256,9 @@ class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
   splitWk {a b c b' c': A}
     : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
     := λs wl wr => splitWkRight (splitWkLeft s wl) wr
-  wkLeft w s := ⟨_, wkSplit w s, wkId _⟩
-  wkRight w s := ⟨_, wkSplit w s, wkId _⟩
-  distWk w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
+  distArrLeft w s := ⟨_, wkSplit w s, wkId _⟩
+  distArrRight w s := ⟨_, wkSplit w s, wkId _⟩
+  distArr w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
 
 open MergeWk
 
