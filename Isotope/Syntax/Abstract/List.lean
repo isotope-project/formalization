@@ -4,8 +4,10 @@ namespace Abstract
 
 open Splits
 open Wkns
+open Drops
 open MergeWk
 open BiasedDistWk
+open SplitDropArr
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
@@ -265,7 +267,7 @@ def SplitOrWk.Split.assoc {A}
     ⟨_::Γ23, right (wkId _) s, both (splitWkLeft sa w) s'⟩
   | both sa s, both sa' s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
-    let ⟨_, sa, sa'⟩ := splitAssoc sa sa';
+    let ⟨_, sa, sa'⟩ := splitAssoc sa sa'
     ⟨_::Γ23, both sa s, both sa' s'⟩
 
 def SplitOrWk.Split.wkSplit {A}
@@ -313,6 +315,104 @@ instance SplitOrWk.instMergeWk {A: Type u}
   wkSplit := Split.wkSplit
   splitWkLeft := Split.splitWkLeft
   splitWkRight := Split.splitWkRight
+
+def DropOrWk (A: Type u) := List A
+
+inductive DropOrWk.Split.{u, v, w, d} {A: Type u}
+  [S: Splits.{u, v} A] [Wkns.{u, w} A] [Drops.{u, d} A]
+  : DropOrWk A -> DropOrWk A -> DropOrWk A -> Type (max u v w d)
+  | nil: Split [] [] []
+  | left {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) (b::Δ) Ξ
+  | right {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) Δ (b::Ξ)
+  | both {a b c: A} {Γ Δ Ξ: List A}: S.Split a b c -> Split Γ Δ Ξ ->
+    Split (a :: Γ) (b :: Δ) (c :: Ξ)
+  | discard {a: A}: Drop a -> Split Γ Δ Ξ -> Split (a::Γ) Δ Ξ
+
+@[match_pattern]
+def DropOrWk.Split.sleft.{u, v, w, d} {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [Drops.{u, d} A]
+  {Γ Δ Ξ} (a: A): Split Γ Δ Ξ -> Split (a::Γ) (a::Δ) Ξ
+  := Split.left (wkId a)
+
+@[match_pattern]
+def DropOrWk.Split.sright.{u, v, w} {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [Drops.{u, d} A]
+  {Γ Δ Ξ} (a: A): Split Γ Δ Ξ -> Split (a::Γ) Δ (a::Ξ)
+  := Split.right (wkId a)
+
+@[match_pattern]
+def DropOrWk.Split.symm {A}
+  [Splits A] [Wkns A] [Drops A] {Γ Δ Ξ: DropOrWk A}:
+  Split Γ Δ Ξ -> Split Γ Ξ Δ
+  | nil => nil
+  | left a s => right a (symm s)
+  | right a s => left a (symm s)
+  | both s ss => both (splitSymm s) (symm ss)
+  | discard d s => discard d (symm s)
+
+@[match_pattern]
+def DropOrWk.Split.assoc {A}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [MergeWk.{u, v, w} A] [D: SplitDropWk A]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: DropOrWk A}:
+    Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
+        (Γ23: List A)
+        ×' (_: Split Γ123 Γ1 Γ23)
+        ×' (Split Γ23 Γ2 Γ3)
+  | nil, nil => ⟨[], nil, nil⟩
+  | left w s, left w' s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨Γ23, left (wkTrans w w') s, s'⟩
+  | left w s, right w' s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, right w s, left w' s'⟩
+  | left w s, both sa s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    let ⟨_, sa, w⟩ := wkRight w sa
+    ⟨_::Γ23, both sa s, left w s'⟩
+  | left w s, discard d s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, right w s, discard d s'⟩
+  | right w s, s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, right w s, right (wkId _) s'⟩
+  | both sa s, left w s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, both (splitWkLeft sa w) s, right (wkId _) s'⟩
+  | both sa s, right w s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, right (wkId _) s, both (splitWkLeft sa w) s'⟩
+  | both sa s, both sa' s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    let ⟨_, sa, sa'⟩ := splitAssoc sa sa'
+    ⟨_::Γ23, both sa s, both sa' s'⟩
+  | both sa s, discard d s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, sright _ s, right (D.splitDropLeft sa d) s'⟩
+  | discard d s, s' =>
+    let ⟨_, s, s'⟩ := assoc s s'
+    ⟨_, discard d s, s'⟩
+
+-- instance DropOrWk.instWkns {A: Type u} [Wkns.{u, w} A]
+--   : Wkns.{u, max (u + 1) w} (DropOrWk A) where
+--   Wk := Wk
+--   wkId := Wk.id
+--   wkTrans := Wk.trans
+
+instance DropOrWk.instSplits {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [MergeWk.{u, v, w} A] [SplitDropWk A]
+  : Splits (DropOrWk A) where
+  Split := Split
+  splitSymm := Split.symm
+  splitAssoc := Split.assoc
+
+-- instance SplitOrWk.instMergeWk {A: Type u}
+--   [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+--   : MergeWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
+--   wkSplit := Split.wkSplit
+--   splitWkLeft := Split.splitWkLeft
+--   splitWkRight := Split.splitWkRight
 
 --TODO: weaken + drop
 

@@ -88,6 +88,8 @@ class Splits.{u, v} (A: Type u): Type (max u v) where
 
 open Splits
 
+--TODO: SSplits or Splats?
+
 instance instSplitsUnit: Splits Unit where
   Split _ _ _ := Unit
   splitSymm _ := ()
@@ -152,26 +154,41 @@ instance Wks.instCategoryStruct {A: Type u} [W: Wkns.{u, v+1} A]
 
 class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
 
-class Droppable.{u, v} (A: Type u) where
+class Drops.{u, v} (A: Type u) where
   Drop: A -> Sort v
 
-open Droppable
+open Drops
 
-class DropArr.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Droppable.{u, w} A]
+class DropArr.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Drops.{u, w} A]
   where
-  dropArr {a b: A}: Q.Hom a b -> Drop a -> Drop b
+  dropArr {a b: A}: Q.Hom a b -> Drop b -> Drop a
 
 open DropArr
 
+class SplitDropArr.{u, s, v, d}
+  (A: Type u) (S: Splits.{u, s} A) (Q: Quiver.{v} A)
+  [Drops.{u, d} A] [DropArr.{u, v, d} A Q]
+  where
+  splitDropLeft {a b c: A}: Split a b c -> Drop b -> Q.Hom a c
+  splitDropRight {a b c: A}: Split a b c -> Drop c -> Q.Hom a b
+    := λs d => splitDropLeft (splitSymm s) d
+  splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
+    := λs dl dr => dropArr (splitDropLeft s dl) dr
+
 class DropWk (A: Type u) [Wkns.{u, w} A]
-  extends Droppable A, DropArr A (Wks.quiver A)
+  extends Drops A, DropArr A (Wks.quiver A)
 
 abbrev DropWk.dropWk {A: Type u}
   [W: Wkns A] [D: DropWk A]
-  {a b: A} : W.Wk a b -> Drop a -> Drop b
+  {a b: A} : W.Wk a b -> Drop b -> Drop a
   := D.dropArr
 
 open DropWk
+
+class SplitDropWk (A: Type u) [S: Splits A] [Wkns A]
+  extends DropWk A, SplitDropArr A S (Wks.quiver A)
+
+open SplitDropWk
 
 --TODO: add instance?
 
