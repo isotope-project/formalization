@@ -3,6 +3,62 @@ import Mathlib.CategoryTheory.DiscreteCategory
 
 open CategoryTheory
 
+class ReflexiveQuiver {A: Type u} (Q: Quiver.{v} A) where
+  id (a: A): Q.Hom a a
+
+instance CategoryStruct.instReflexiveQuiver {A: Type u} [C: CategoryStruct A]
+  : ReflexiveQuiver C.toQuiver where
+  id := C.id
+
+class Precategory {A: Type u} (Q: Quiver.{v} A) extends ReflexiveQuiver Q where
+  comp {a b c: A}: Q.Hom a b -> Q.Hom b c -> Q.Hom a c
+
+instance CategoryStruct.instPrecategory {A: Type u} [C: CategoryStruct A]
+  : Precategory C.toQuiver where
+  comp := C.comp
+
+class QCategory {A: Type u} (Q: Quiver.{v} A) extends Precategory Q where
+  id_comp {a b: A} (f: Q.Hom a b): comp (id a) f = f
+  comp_id {a b: A} (f: Q.Hom a b): comp f (id b) = f
+  assoc {a b c d: A}
+    (f: Q.Hom a b) (g: Q.Hom b c) (h: Q.Hom c d):
+    comp (comp f g) h = comp f (comp g h)
+
+instance CategoryStruct.instQCategory {A: Type u} [C: Category A]
+  : QCategory C.toQuiver where
+  id_comp := C.id_comp
+  comp_id := C.comp_id
+  assoc := C.assoc
+
+-- class QuiverLike.{u, v, w} (A: Type u) (H: Type v) where
+--   toQuiver: H -> Quiver.{w} A
+
+-- class PrecategoryLike.{u, v, w} (A: Type u) (H: Type v)
+--   extends QuiverLike.{u, v, w} A H
+--   where
+--   idOf (H: H) (a: A): (toQuiver H).Hom a a
+--   compOf (H: H) {a b c: A}:
+--     (toQuiver H).Hom a b ->
+--     (toQuiver H).Hom b c ->
+--     (toQuiver H).Hom a c
+
+-- --TODO: toCategoryStruct
+
+-- class CategoryLike.{u, v, w} (A: Type u) (H: Type v)
+--   extends PrecategoryLike.{u, v, w} A H
+--   where
+--   id_comp_of (H: H) {a b: A} (f: (toQuiver H).Hom a b):
+--     compOf H (idOf H a) f = f
+--   comp_id_of (H: H) {a b: A} (f: (toQuiver H).Hom a b):
+--     compOf H f (idOf H b) = f
+--   comp_assoc_of (H: H) {a b c d: A}
+--     (f: (toQuiver H).Hom a b)
+--     (g: (toQuiver H).Hom b c)
+--     (h: (toQuiver H).Hom c d):
+--     compOf H (compOf H f g) h = compOf H f (compOf H g h)
+
+--TODO: toCategory
+
 namespace Abstract
 
 class Splits.{u, v} (A: Type u): Type (max u v) where
@@ -62,6 +118,10 @@ class Wkns.{u, v} (A: Type u): Type (max u v) where
   wkId: (a: A) -> Wk a a
   wkTrans {a b c: A}: Wk a b -> Wk b c -> Wk a c
 
+-- instance Wkns.instQuiverLike {A: Type u}
+--   : QuiverLike A (Wkns A) where
+--   toQuiver W := { Hom := W.Wk }
+
 open Wkns
 
 instance instWknsUnit: Wkns Unit where
@@ -75,48 +135,107 @@ instance Wks.instQuiver {A: Type u} [W: Wkns A]
   : Quiver (Wks A) where
   Hom := W.Wk
 
+def Wks.quiver (A: Type u) [Wkns A]: Quiver (Wks A) := Wks.instQuiver
+
+instance Wks.instReflexiveQuiver {A} [W: Wkns A]
+  : ReflexiveQuiver (Wks.quiver A) where
+  id := W.wkId
+
+instance Wks.instPrecategory {A} [W: Wkns A]
+  : Precategory (Wks.quiver A) where
+  comp := W.wkTrans
+
 instance Wks.instCategoryStruct {A: Type u} [W: Wkns.{u, v+1} A]
   : CategoryStruct (Wks A) where
   id := W.wkId
   comp := W.wkTrans
 
+class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
+
 class Droppable.{u, v} (A: Type u) where
   Drop: A -> Sort v
 
-class DropWk.{u, v} (A: Type u) [Wkns.{u, w} A]
-  extends Droppable.{u, v} A
-  where
-  dropWk {a b: A}: Wk a b -> Drop a -> Drop b
+open Droppable
 
-class DistWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
+class DropArr.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Droppable.{u, w} A]
+  where
+  dropArr {a b: A}: Q.Hom a b -> Drop a -> Drop b
+
+class DropWk.{u, v, w} (A: Type u) [Wkns.{u, w} A]
+  extends Droppable.{u, v} A, DropArr.{u, w, v} A (Wks.quiver _)
+  where
+  dropWk {a b: A}: Wk a b -> Drop a -> Drop b := dropArr
+  dropArr := dropWk
+
+--TODO: add instance?
+
+class DistArr.{u, s, w}
+  (A: Type u)
+  (S: Splits.{u, s} A)
+  (H: Quiver.{w} A)
+  where
+  distArr {a' a b c: A}: H.Hom a' a -> Split a b c
+    -> (b' c': A) ×' (_: Split a' b' c') ×' (_: H.Hom b' b) ×' (H.Hom c' c)
+
+open DistArr
+
+class DistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [W: Wkns.{u, w} A]
+  extends DistArr A S (Wks.quiver A)
   where
   distWk {a' a b c: A}: Wk a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
+    := distArr
+  distArr := distWk
 
 open DistWk
 
-class BiasedDistWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
-  extends DistWk A
+class BiasedDistArr.{u, s, w} (A: Type u)
+  (S: Splits.{u, s} A) (H: Quiver.{w} A)
+  extends DistArr A S H
+  where
+  distArrLeft {a' a b c: A}: H.Hom a' a -> Split a b c
+    -> (b': A) ×' (_: Split a' b' c) ×' (H.Hom b' b)
+  distArrRight {a' a b c: A}: H.Hom a' a -> Split a b c
+    -> (c': A) ×' (_: Split a' b c') ×' (H.Hom c' c)
+    := λw s =>
+      let ⟨c', s, W⟩ := distArrLeft w (splitSymm s);
+      ⟨c', splitSymm s, W⟩
+  -- distWk w s :=
+  --     let ⟨c', s, w⟩ := wkLeft w s;
+  --     ⟨c', _, s, w, wkId _⟩
+
+open BiasedDistArr
+
+instance BiasedDistArr.instDistArr {A: Type u} {S: Splits.{u, s} A}
+  {H: Quiver.{w} A} [BiasedDistArr A S H] [R: ReflexiveQuiver H]
+  : DistArr A S H where
+    distArr w s :=
+      let ⟨c', s, w⟩ := distArrLeft w s;
+      ⟨c', _, s, w, R.id _⟩
+
+class BiasedDistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  extends BiasedDistArr A S (Wks.quiver A), DistWk A
   where
   wkLeft {a' a b c: A}: Wk a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
+    := distArrLeft
   wkRight {a' a b c: A}: Wk a' a -> Split a b c
     -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
-    := λw s =>
-      let ⟨c', s, W⟩ := wkLeft w (splitSymm s);
-      ⟨c', splitSymm s, W⟩
-  distWk w s :=
-      let ⟨c', s, w⟩ := wkLeft w s;
-      ⟨c', _, s, w, wkId _⟩
+    := distArrRight
+  distArrLeft := wkLeft
+  distArrRight := wkRight
+  distArr w s :=
+    let ⟨c', s, w⟩ := distArrLeft w s;
+    ⟨c', _, s, w, wkId _⟩
+  distWk := distArr
 
 open BiasedDistWk
 
 instance instBiasedDistWkUnit: BiasedDistWk Unit where
   wkLeft _ _ := ⟨(), (), ()⟩
 
-class SplitWk.{u, v, w} (A: Type u)
-  extends Splits.{u, v} A, Wkns.{u, w} A, BiasedDistWk.{u, v, w} A
-  --TODO: distributive variant?
+-- class SplitWk.{u, v, w} (A: Type u)
+--   extends Splits.{u, v} A, Wkns.{u, w} A, BiasedDistWk.{u, v, w} A
 
 class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
   extends BiasedDistWk.{u, s, w} A
@@ -136,8 +255,8 @@ class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
 
 open MergeWk
 
-class CSplitWk (A: Type u)
-  extends Splits.{u, v} A, Wkns.{u, w} A, MergeWk.{u, v, w} A
+-- class CSplitWk (A: Type u)
+--   extends Splits.{u, v} A, Wkns.{u, w} A, MergeWk.{u, v, w} A
 
 -- instance CSplitWk.instSplitWk {A} [W: CSplitWk A]: SplitWk A where
 --   wkLeft w s := ⟨_, wkSplit w s, W.wkId _⟩
