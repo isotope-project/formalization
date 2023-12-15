@@ -41,8 +41,8 @@ theorem Var.le.rel {N: Type u} {T: Type v} [HasLin T] {l r: Var N T}
     intro H H';
     exact ⟨Ht.2.2 H, Ht.1 ▸ H'⟩
 
-instance Var.instDroppable {N: Type u} {T: Type v} [HasLin T]
-  : Droppable.{_, 0} (Var N T) where
+instance Var.instDrops {N: Type u} {T: Type v} [HasLin T]
+  : Drops.{_, 0} (Var N T) where
   Drop v := HasLin.aff v
 
 instance Var.instWkns {N: Type u} {T: Type v}
