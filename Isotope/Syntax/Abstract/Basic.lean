@@ -294,28 +294,47 @@ open BiasedDistWk
 instance instBiasedDistWkUnit: BiasedDistWk Unit where
   distArrLeft _ _ := ⟨(), (), ()⟩
 
--- class SplitWk.{u, v, w} (A: Type u)
---   extends Splits.{u, v} A, Wkns.{u, w} A, BiasedDistWk.{u, v, w} A
-
--- open MergeArr
-
-class MergeWk.{u, s, w} (A: Type u) [Splits.{u, s} A] [Wkns.{u, w} A]
-  extends BiasedDistWk.{u, s, w} A
+class SplitArr.{u, s, w}
+  (A: Type u)
+  (S: Splits.{u, s} A)
+  (H: Quiver.{w} A)
   where
-  wkSplit {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
-  splitWkLeft {a b c b': A}
-    : Split a b c -> Wk b b' -> Split a b' c
-  splitWkRight {a b c c': A}
-    : Split a b c -> Wk c c' -> Split a b c'
-    := λs w => splitSymm (splitWkLeft (splitSymm s) w)
-  splitWk {a b c b' c': A}
-    : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
-    := λs wl wr => splitWkRight (splitWkLeft s wl) wr
-  distArrLeft w s := ⟨_, wkSplit w s, wkId _⟩
-  distArrRight w s := ⟨_, wkSplit w s, wkId _⟩
-  distArr w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
+  arrSplit {a' a b c: A}: H.Hom a' a -> Split a b c -> Split a' b c
+  splitArrLeft {a b b' c: A}: Split a b c -> H.Hom b b' -> Split a b' c
+  splitArrRight {a b c c': A}
+    : Split a b c -> H.Hom c c' -> Split a b c'
+    := λs w => splitSymm (splitArrLeft (splitSymm s) w)
+  splitArr {a b b' c c': A}
+    : Split a b c -> H.Hom b b' -> H.Hom c c' -> Split a b' c'
+    := λs wl wr => splitArrRight (splitArrLeft s wl) wr
 
-open MergeWk
+--TODO: generalize auto impl for reflexive quiver
+
+class SplitWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Q: Wkns.{u, w} A]
+  extends SplitArr.{u, s, w} A S (Wks.quiver A), BiasedDistWk.{u, s, w} A
+  where
+  distArrLeft w s := ⟨_, arrSplit w s, wkId _⟩
+  distArrRight w s := ⟨_, arrSplit w s, wkId _⟩
+  distArr w s := ⟨_, _, arrSplit w s, wkId _, wkId _⟩
+
+abbrev SplitWk.wkSplit.{u, s, w} {A: Type u} [Splits.{u, s} A] [Wkns.{u, w} A]
+  [D: SplitWk A] {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
+  := D.arrSplit
+abbrev SplitWk.splitWkLeft.{u, s, w} {A: Type u}
+  [Splits.{u, s} A] [Wkns.{u, w} A]
+  [D: SplitWk A] {a b b' c: A}: Split a b c -> Wk b b' -> Split a b' c
+  := D.splitArrLeft
+abbrev SplitWk.splitWkRight.{u, s, w} {A: Type u}
+  [Splits.{u, s} A] [Wkns.{u, w} A]
+  [D: SplitWk A] {a b c c': A}: Split a b c -> Wk c c' -> Split a b c'
+  := D.splitArrRight
+abbrev SplitWk.splitWk.{u, s, w} {A: Type u}
+  [Splits.{u, s} A] [Wkns.{u, w} A]
+  [D: SplitWk A] {a b b' c c': A}
+  : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
+  := D.splitArr
+
+open SplitWk
 
 -- class CSplitWk (A: Type u)
 --   extends Splits.{u, v} A, Wkns.{u, w} A, MergeWk.{u, v, w} A

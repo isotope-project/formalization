@@ -60,11 +60,11 @@ instance Var.instSplits {N: Type u} {T: Type v} [HasLin T]
   -- splitWkLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
   -- splitWkRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
 
-instance Var.instMergeWk {N: Type u} {T: Type v} [HasLin T]
-  : MergeWk.{_, 0} (Var N T) where
-  wkSplit | w, s => ⟨le.rel w s.1, le_trans s.2.1 w, le_trans s.2.2 w⟩
-  splitWkLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
-  splitWkRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
+instance Var.instSplitWk {N: Type u} {T: Type v} [HasLin T]
+  : SplitWk.{_, 0} (Var N T) where
+  arrSplit | w, s => ⟨le.rel w s.1, le_trans s.2.1 w, le_trans s.2.2 w⟩
+  splitArrLeft | s, w => ⟨s.1, le_trans w s.2.1, s.2.2⟩
+  splitArrRight | s, w => ⟨s.1, s.2.1, le_trans w s.2.2⟩
 
 def Ctx (N: Type u) (T: Type v) := List (Var N T)
 
@@ -76,9 +76,9 @@ instance Ctx.instWkns {N: Type u} {T: Type v} [HasLin T]
   : Wkns (Ctx N T)
   := SplitOrWk.instWkns
 
-instance Ctx.instMergeWk {N: Type u} {T: Type v} [HasLin T]
-  : MergeWk (Ctx N T)
-  := SplitOrWk.instMergeWk
+instance Ctx.instSplitWk {N: Type u} {T: Type v} [HasLin T]
+  : SplitWk (Ctx N T)
+  := SplitOrWk.instSplitWk
   --TODO: support discarding...
 
 -- instance Ctx.instCSplitWk {N: Type u} {T: Type v} [HasLin T]

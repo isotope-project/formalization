@@ -6,9 +6,10 @@ open Splits
 open Wkns
 open Drops
 open DropWk
-open MergeWk
+open SplitWk
 open BiasedDistWk
 open SplitDropArr
+open SplitArr
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
@@ -71,6 +72,10 @@ instance List.instWkns {A}: Wkns (List A) where
   wkTrans := List.Sublist.trans
 
 --TODO: elementwise resource theorems, e.g. split wk
+
+--TODO: splat for lists allowing drops?
+
+--TODO: S for _strict_ or _strong_?
 
 def Elementwise (A: Type u) := List A
 
@@ -240,7 +245,7 @@ def SplitOrWk.Split.symm {A}
   | both s ss => both (splitSymm s) (symm ss)
 
 def SplitOrWk.Split.assoc {A}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   {Γ123 Γ12 Γ1 Γ2 Γ3: SplitOrWk A}:
     Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
         (Γ23: List A)
@@ -271,31 +276,31 @@ def SplitOrWk.Split.assoc {A}
     let ⟨_, sa, sa'⟩ := splitAssoc sa sa'
     ⟨_::Γ23, both sa s, both sa' s'⟩
 
-def SplitOrWk.Split.wkSplit {A}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+def SplitOrWk.Split.wk {A}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   {Γ' Γ Δ Ξ: SplitOrWk A}: Wk Γ' Γ -> Split Γ Δ Ξ -> Split Γ' Δ Ξ
   | Wk.nil, nil => nil
-  | Wk.cons w W, left w' s => left (wkTrans w w') (wkSplit W s)
-  | Wk.cons w W, right w' s => right (wkTrans w w') (wkSplit W s)
-  | Wk.cons w W, both sa s => both (MergeWk.wkSplit w sa) (wkSplit W s)
+  | Wk.cons w W, left w' s => left (wkTrans w w') (wk W s)
+  | Wk.cons w W, right w' s => right (wkTrans w w') (wk W s)
+  | Wk.cons w W, both sa s => both (wkSplit w sa) (wk W s)
 
-def SplitOrWk.Split.splitWkLeft {A}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+def SplitOrWk.Split.wkLeft {A}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   {Γ Δ Δ' Ξ: SplitOrWk A}: Split Γ Δ Ξ -> Wk Δ Δ' -> Split Γ Δ' Ξ
   | nil, Wk.nil => nil
-  | left w S, Wk.cons w' W => left (wkTrans w w') (splitWkLeft S W)
-  | right w S, W => right w (splitWkLeft S W)
-  | both sa S, Wk.cons w' W
-    => both (MergeWk.splitWkLeft sa w') (splitWkLeft S W)
+  | left wa s, Wk.cons wa' w => left (wkTrans wa wa') (wkLeft s w)
+  | right wa s, w => right wa (wkLeft s w)
+  | both sa s, Wk.cons wa w
+    => both (splitWkLeft sa wa) (wkLeft s w)
 
-def SplitOrWk.Split.splitWkRight {A}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+def SplitOrWk.Split.wkRight {A}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   {Γ Δ Ξ Ξ': SplitOrWk A}: Split Γ Δ Ξ -> Wk Ξ Ξ' -> Split Γ Δ Ξ'
   | nil, Wk.nil => nil
-  | left w S, W => left w (splitWkRight S W)
-  | right w S, Wk.cons w' W => right (wkTrans w w') (splitWkRight S W)
-  | both sa S, Wk.cons w' W
-    => both (MergeWk.splitWkRight sa w') (splitWkRight S W)
+  | left wa s, w => left wa (wkRight s w)
+  | right wa s, Wk.cons wa' w => right (wkTrans wa wa') (wkRight s w)
+  | both sa s, Wk.cons wa w
+    => both (splitWkRight sa wa) (wkRight s w)
 
 instance SplitOrWk.instWkns {A: Type u} [Wkns.{u, w} A]
   : Wkns.{u, max (u + 1) w} (SplitOrWk A) where
@@ -304,18 +309,18 @@ instance SplitOrWk.instWkns {A: Type u} [Wkns.{u, w} A]
   wkTrans := Wk.trans
 
 instance SplitOrWk.instSplits {A: Type u}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   : Splits.{u, max (u + 1) v w} (SplitOrWk A) where
   Split := Split
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
-instance SplitOrWk.instMergeWk {A: Type u}
-  [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
-  : MergeWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
-  wkSplit := Split.wkSplit
-  splitWkLeft := Split.splitWkLeft
-  splitWkRight := Split.splitWkRight
+instance SplitOrWk.instSplitWk {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
+  : SplitWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
+  arrSplit := Split.wk
+  splitArrLeft := Split.wkLeft
+  splitArrRight := Split.wkRight
 
 def DropOrWk (A: Type u) := List A
 
@@ -401,7 +406,7 @@ def DropOrWk.Split.symm {A}
 @[match_pattern]
 def DropOrWk.Split.assoc {A}
   [Splits.{u, v} A] [Wkns.{u, w} A]
-  [MergeWk.{u, v, w} A] [D: SplitDropWk A]
+  [SplitWk.{u, v, w} A] [D: SplitDropWk A]
   {Γ123 Γ12 Γ1 Γ2 Γ3: DropOrWk A}:
     Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
         (Γ23: List A)
@@ -441,26 +446,13 @@ def DropOrWk.Split.assoc {A}
     let ⟨_, s, s'⟩ := assoc s s'
     ⟨_, discard d s, s'⟩
 
--- instance DropOrWk.instWkns {A: Type u} [Wkns.{u, w} A]
---   : Wkns.{u, max (u + 1) w} (DropOrWk A) where
---   Wk := Wk
---   wkId := Wk.id
---   wkTrans := Wk.trans
-
 instance DropOrWk.instSplits {A: Type u}
   [Splits.{u, v} A] [Wkns.{u, w} A]
-  [MergeWk.{u, v, w} A] [SplitDropWk A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
   : Splits (DropOrWk A) where
   Split := Split
   splitSymm := Split.symm
   splitAssoc := Split.assoc
-
--- instance SplitOrWk.instMergeWk {A: Type u}
---   [Splits.{u, v} A] [Wkns.{u, w} A] [MergeWk.{u, v, w} A]
---   : MergeWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
---   wkSplit := Split.wkSplit
---   splitWkLeft := Split.splitWkLeft
---   splitWkRight := Split.splitWkRight
 
 --TODO: weaken + drop
 
