@@ -118,6 +118,12 @@ class Wkns.{u, v} (A: Type u): Type (max u v) where
   wkId: (a: A) -> Wk a a
   wkTrans {a b c: A}: Wk a b -> Wk b c -> Wk a c
 
+-- instance Wkns.instQuiverLike {A: Type u}
+--   : QuiverLike A (Wkns A) where
+--   toQuiver W := { Hom := W.Wk }
+
+open Wkns
+
 class SWkns.{u, v, w} (A: Type u)
   extends Wkns.{u, v} A: Type (max u v w)
   where
@@ -126,16 +132,18 @@ class SWkns.{u, v, w} (A: Type u)
   swkTrans {a b c: A}: SWk a b -> SWk b c -> SWk a c
   swkToWk {a b: A}: SWk a b -> Wk a b
 
--- instance Wkns.instQuiverLike {A: Type u}
---   : QuiverLike A (Wkns A) where
---   toQuiver W := { Hom := W.Wk }
-
-open Wkns
+open SWkns
 
 instance instWknsUnit: Wkns Unit where
   Wk _ _ := Unit
   wkId _ := ()
   wkTrans _ _ := ()
+
+instance instSWknsUnit: SWkns Unit where
+  SWk _ _ := Unit
+  swkToWk _ := ()
+  swkId _ := ()
+  swkTrans _ _ := ()
 
 def Wks (A: Type u) := A
 
@@ -158,77 +166,104 @@ instance Wks.instCategoryStruct {A: Type u} [W: Wkns.{u, v+1} A]
   id := W.wkId
   comp := W.wkTrans
 
+def SWks (A: Type u) := A
+
+instance SWks.instQuiver {A: Type u} [W: SWkns A]
+  : Quiver (SWks A) where
+  Hom := W.SWk
+
+def SWks.quiver (A: Type u) [SWkns A]: Quiver A := SWks.instQuiver
+
+instance SWks.instReflexiveQuiver {A} [W: SWkns A]
+  : ReflexiveQuiver (SWks.quiver A) where
+  id := W.swkId
+
+instance SWks.instPrecategory {A} [W: SWkns A]
+  : Precategory (SWks.quiver A) where
+  comp := W.swkTrans
+
 class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
 
---TODO: Split ==> Splat
---TODO: Splat ==> Split;(Wk × Wk)
---TODO: Wk;Split ==> Splat
-class Splats.{u, v} (A: Type u) extends Splits.{u, v} A
+--TODO: SSplit ==> Split
+--TODO: Split ==> SSplit;(Wk × Wk) (Or Wk;SSplit;Wk × Wk?)
+--TODO: Wk;SSplit ==> Split
+class SSplits.{u, v} (A: Type u) extends Splits.{u, v} A
   : Type (max u v) where
-  Splat: A -> A -> A -> Sort v
-  splitToSplat {a b c: A}: Split a b c -> Splat a b c
-  splatSymm {a b c: A}: Splat a b c -> Splat a c b
-  splatAssoc {a123 a12 a1 a2 a3: A}:
-    Splat a123 a12 a3 -> Splat a12 a1 a2 ->
-      (a23: A) ×' (_: Splat a123 a1 a23) ×' (Splat a23 a2 a3)
-  splatAssoc_inv {a123 a23 a1 a2 a3}:
-    Splat a123 a1 a23 -> Splat a23 a2 a3 ->
-      (a12: A) ×' (_: Splat a123 a12 a3) ×' (Splat a12 a1 a2)
+  SSplit: A -> A -> A -> Sort v
+  ssplitToSplit {a b c: A}: Split a b c -> SSplit a b c
+  ssplitSymm {a b c: A}: SSplit a b c -> SSplit a c b
+  ssplitAssoc {a123 a12 a1 a2 a3: A}:
+    SSplit a123 a12 a3 -> SSplit a12 a1 a2 ->
+      (a23: A) ×' (_: SSplit a123 a1 a23) ×' (SSplit a23 a2 a3)
+  ssplitAssoc_inv {a123 a23 a1 a2 a3}:
+    SSplit a123 a1 a23 -> SSplit a23 a2 a3 ->
+      (a12: A) ×' (_: SSplit a123 a12 a3) ×' (SSplit a12 a1 a2)
       := λs1_23 s2_3 =>
-        let ⟨a21, s3_21, s2_1⟩ := splatAssoc (splatSymm s1_23) (splatSymm s2_3)
-        ⟨a21, splatSymm s3_21, splatSymm s2_1⟩
-  splatPermute_1234_1324 {a1234 a12 a34 a1 a2 a3 a4}:
-    Splat a1234 a12 a34 -> Splat a12 a1 a2 -> Splat a34 a3 a4 ->
+        let ⟨a21, s3_21, s2_1⟩ := ssplitAssoc (ssplitSymm s1_23) (ssplitSymm s2_3)
+        ⟨a21, ssplitSymm s3_21, ssplitSymm s2_1⟩
+  ssplitPermute_1234_1324 {a1234 a12 a34 a1 a2 a3 a4}:
+    SSplit a1234 a12 a34 -> SSplit a12 a1 a2 -> SSplit a34 a3 a4 ->
       (a13 a24: A)
-        ×' (_: Splat a1234 a13 a24)
-        ×' (_: Splat a13 a1 a3)
-        ×' (Splat a24 a2 a4)
+        ×' (_: SSplit a1234 a13 a24)
+        ×' (_: SSplit a13 a1 a3)
+        ×' (SSplit a24 a2 a4)
       := λs12_34 s1_2 s3_4 =>
-        let ⟨_a234, s1_234, s2_34⟩ := splatAssoc s12_34 s1_2;
-        let ⟨_a23, s23_4, s2_3⟩ := splatAssoc_inv s2_34 s3_4;
-        let ⟨a24, s32_4, s2_4⟩ := splatAssoc s23_4 (splatSymm s2_3);
-        let ⟨a13, s13_24, s1_3⟩ := splatAssoc_inv s1_234 s32_4;
+        let ⟨_a234, s1_234, s2_34⟩ := ssplitAssoc s12_34 s1_2;
+        let ⟨_a23, s23_4, s2_3⟩ := ssplitAssoc_inv s2_34 s3_4;
+        let ⟨a24, s32_4, s2_4⟩ := ssplitAssoc s23_4 (ssplitSymm s2_3);
+        let ⟨a13, s13_24, s1_3⟩ := ssplitAssoc_inv s1_234 s32_4;
         ⟨a13, a24, s13_24, s1_3, s2_4⟩
 
-open Splats
+open SSplits
 
 class Drops.{u, v} (A: Type u) where
   Drop: A -> Sort v
 
 open Drops
 
-class DropArr.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Drops.{u, w} A]
+class ArrDrop.{u, v, w} (A: Type u) (Q: Quiver.{v} A) [Drops.{u, w} A]
   where
-  dropArr {a b: A}: Q.Hom a b -> Drop b -> Drop a
+  arrDrop {a b: A}: Q.Hom a b -> Drop b -> Drop a
 
-open DropArr
+open ArrDrop
+
+class WkDrop.{u, w, d} (A: Type u) [Wkns.{u, w} A]
+  extends Drops.{u, d} A
+  where
+  wkDrop {a b: A}: Wk a b -> Drop b -> Drop a
+
+open WkDrop
+
+instance WkDrop.instArrDrop {A}
+  [Wkns.{u, w} A] [WkDrop.{u, w, d} A]
+  : ArrDrop A (Wks.quiver A) where
+  arrDrop := wkDrop
+
+class SWkDrop.{u, w, d} (A: Type u) [SWkns.{u, w} A]
+  extends Drops.{u, d} A
+  where
+  swkDrop {a b: A}: SWk a b -> Drop b -> Drop a
+
+open SWkDrop
+
+instance SWkDrop.instArrDrop {A}
+  [SWkns.{u, w} A] [SWkDrop.{u, w, d} A]
+  : ArrDrop A (SWks.quiver A) where
+  arrDrop := swkDrop
 
 class SplitDropArr.{u, s, v, d}
   (A: Type u) (S: Splits.{u, s} A) (Q: Quiver.{v} A)
-  [Drops.{u, d} A] [DropArr.{u, v, d} A Q]
+  [Drops.{u, d} A] [ArrDrop.{u, v, d} A Q]
   where
   splitDropLeft {a b c: A}: Split a b c -> Drop b -> Q.Hom a c
   splitDropRight {a b c: A}: Split a b c -> Drop c -> Q.Hom a b
     := λs d => splitDropLeft (splitSymm s) d
   splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
-    := λs dl dr => dropArr (splitDropLeft s dl) dr
+    := λs dl dr => arrDrop (splitDropLeft s dl) dr
 
-class DropWk (A: Type u) [Wkns.{u, w} A]
-  extends Drops A, DropArr A (Wks.quiver A)
-
-abbrev DropWk.dropWk {A: Type u}
-  [W: Wkns A] [D: DropWk A]
-  {a b: A} : W.Wk a b -> Drop b -> Drop a
-  := D.dropArr
-
-open DropWk
-
-class SplitDropWk (A: Type u) [S: Splits A] [Wkns A]
-  extends DropWk A, SplitDropArr A S (Wks.quiver A)
-
-open SplitDropWk
-
---TODO: add instance?
+class SplitDropWk.{u, s, v, d}
+  (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, v} A]
+  extends WkDrop A, SplitDropArr.{u, s, v, d} A S (Wks.quiver A)
 
 class DistArr.{u, s, w}
   (A: Type u)
@@ -238,22 +273,19 @@ class DistArr.{u, s, w}
   distArr {a' a b c: A}: H.Hom a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: H.Hom b' b) ×' (H.Hom c' c)
 
-open DistArr
-
 class DistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [W: Wkns.{u, w} A]
-  extends DistArr A S (Wks.quiver A)
   where
-
-abbrev DistWk.distWk {A} [Splits A] [Wkns A] [D: DistWk A]
-  {a' a b c: A}: Wk a' a -> Split a b c
+  distWk {a' a b c: A}: Wk a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
-  := D.distArr
 
 open DistWk
 
+instance DistWk.instDistArr {A} [S: Splits A] [Wkns A] [DistWk A]
+  : DistArr A S (Wks.quiver A) where
+  distArr := distWk
+
 class BiasedDistArr.{u, s, w} (A: Type u)
   (S: Splits.{u, s} A) (H: Quiver.{w} A)
-  extends DistArr A S H
   where
   distArrLeft {a' a b c: A}: H.Hom a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (H.Hom b' b)
@@ -273,26 +305,36 @@ instance BiasedDistArr.instDistArr {A: Type u} {S: Splits.{u, s} A}
       ⟨c', _, s, w, R.id _⟩
 
 class BiasedDistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
-  extends BiasedDistArr A S (Wks.quiver A), DistWk A
+  extends DistWk A
   where
-  distArr w s :=
-    let ⟨c', s, w⟩ := distArrLeft w s;
-    ⟨c', _, s, w, wkId _⟩
-
-abbrev BiasedDistWk.wkLeft {A} [Splits A] [Wkns A] [D: BiasedDistWk A]
-   {a' a b c: A}: Wk a' a -> Split a b c
+  distWkLeft {a' a b c: A}: Wk a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
-   := D.distArrLeft
-
-abbrev BiasedDistWk.wkRight {A} [Splits A] [Wkns A] [D: BiasedDistWk A]
-  {a' a b c: A}: Wk a' a -> Split a b c
+  distWkRight {a' a b c: A}: Wk a' a -> Split a b c
     -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
-  := D.distArrRight
+    := λw s =>
+      let ⟨c', s, W⟩ := distWkLeft w (splitSymm s);
+      ⟨c', splitSymm s, W⟩
+  distWk w s :=
+      let ⟨c', s, w⟩ := distWkLeft w s;
+      ⟨c', _, s, w, wkId _⟩
 
 open BiasedDistWk
 
+instance BiasedDistWk.instDistArr {A: Type u}
+  [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  [BiasedDistWk A]
+  : DistArr A S (Wks.quiver A) where
+    distArr := distWk
+
+instance BiasedDistWk.instBiasedDistArr {A: Type u}
+  [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  [BiasedDistWk A]
+  : BiasedDistArr A S (Wks.quiver A) where
+    distArrLeft := distWkLeft
+    distArrRight := distWkRight
+
 instance instBiasedDistWkUnit: BiasedDistWk Unit where
-  distArrLeft _ _ := ⟨(), (), ()⟩
+  distWkLeft _ _ := ⟨(), (), ()⟩
 
 class SplitArr.{u, s, w}
   (A: Type u)
@@ -308,40 +350,29 @@ class SplitArr.{u, s, w}
     : Split a b c -> H.Hom b b' -> H.Hom c c' -> Split a b' c'
     := λs wl wr => splitArrRight (splitArrLeft s wl) wr
 
---TODO: generalize auto impl for reflexive quiver
-
-class SplitWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Q: Wkns.{u, w} A]
-  extends SplitArr.{u, s, w} A S (Wks.quiver A), BiasedDistWk.{u, s, w} A
+class SplitWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  extends BiasedDistWk.{u, s, w} A
   where
-  distArrLeft w s := ⟨_, arrSplit w s, wkId _⟩
-  distArrRight w s := ⟨_, arrSplit w s, wkId _⟩
-  distArr w s := ⟨_, _, arrSplit w s, wkId _, wkId _⟩
-
-abbrev SplitWk.wkSplit.{u, s, w} {A: Type u} [Splits.{u, s} A] [Wkns.{u, w} A]
-  [D: SplitWk A] {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
-  := D.arrSplit
-abbrev SplitWk.splitWkLeft.{u, s, w} {A: Type u}
-  [Splits.{u, s} A] [Wkns.{u, w} A]
-  [D: SplitWk A] {a b b' c: A}: Split a b c -> Wk b b' -> Split a b' c
-  := D.splitArrLeft
-abbrev SplitWk.splitWkRight.{u, s, w} {A: Type u}
-  [Splits.{u, s} A] [Wkns.{u, w} A]
-  [D: SplitWk A] {a b c c': A}: Split a b c -> Wk c c' -> Split a b c'
-  := D.splitArrRight
-abbrev SplitWk.splitWk.{u, s, w} {A: Type u}
-  [Splits.{u, s} A] [Wkns.{u, w} A]
-  [D: SplitWk A] {a b b' c c': A}
-  : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
-  := D.splitArr
+  wkSplit {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
+  splitWkLeft {a b b' c: A}: Split a b c -> Wk b b' -> Split a b' c
+  splitWkRight {a b c c': A}: Split a b c -> Wk c c' -> Split a b c'
+    := λs w => splitSymm (splitWkLeft (splitSymm s) w)
+  splitWk {a b b' c c': A} : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
+    := λs wl wr => splitWkRight (splitWkLeft s wl) wr
+  distWkLeft w s := ⟨_, wkSplit w s, wkId _⟩
+  distWkRight w s := ⟨_, wkSplit w s, wkId _⟩
+  distWk w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
 
 open SplitWk
 
--- class CSplitWk (A: Type u)
---   extends Splits.{u, v} A, Wkns.{u, w} A, MergeWk.{u, v, w} A
-
--- instance CSplitWk.instSplitWk {A} [W: CSplitWk A]: SplitWk A where
---   wkLeft w s := ⟨_, wkSplit w s, W.wkId _⟩
---   wkRight w s := ⟨_, wkSplit w s, W.wkId _⟩
+instance SplitWk.instSplitArr {A: Type u}
+  [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  [SplitWk A]
+  : SplitArr A S (Wks.quiver A) where
+    arrSplit := wkSplit
+    splitArrLeft := splitWkLeft
+    splitArrRight := splitWkRight
+    splitArr := splitWk
 
 def ESRes (A: Type u) := A
 
@@ -363,10 +394,10 @@ instance EWRes.instWkns {A}: Wkns (EWRes A) where
 instance EWRes.instSplits {A} [S: Splits A]
   : Splits (EWRes A) := S
 
--- instance EWRes.instCSplitWk {A} [Splits A]: CSplitWk (EWRes A) where
---   wkSplit | rfl, H => H
---   splitWkLeft | H, rfl => H
---   splitWkRight | H, rfl => H
+instance EWRes.instSplitWk {A} [Splits A]: SplitWk (EWRes A) where
+  wkSplit | rfl, H => H
+  splitWkLeft | H, rfl => H
+  splitWkRight | H, rfl => H
 
 def PRes (A: Type u) := A
 
@@ -382,7 +413,7 @@ instance PRes.instSplits {A} [P: PartialOrder A]: Splits (PRes A) where
     ⟨le_trans Ha1 Ha12, le_refl _⟩,
     ⟨le_trans Ha2 Ha12, Ha3⟩⟩
 
--- instance PRes.instCSplitWk {A} [PartialOrder A]: CSplitWk (PRes A) where
---   wkSplit | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
---   splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
---   splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩
+instance PRes.instSplitWk {A} [PartialOrder A]: SplitWk (PRes A) where
+  wkSplit | H, ⟨Hl, Hr⟩ => ⟨le_trans Hl H, le_trans Hr H⟩
+  splitWkLeft | ⟨Hl, Hr⟩, H => ⟨le_trans H Hl, Hr⟩
+  splitWkRight | ⟨Hl, Hr⟩, H => ⟨Hl, le_trans H Hr⟩

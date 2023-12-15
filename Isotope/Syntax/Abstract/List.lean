@@ -5,10 +5,9 @@ namespace Abstract
 open Splits
 open Wkns
 open Drops
-open DropWk
+open WkDrop
 open SplitWk
 open BiasedDistWk
-open SplitDropArr
 open SplitArr
 
 inductive List.Partitions {A: Type u}
@@ -260,7 +259,7 @@ def SplitOrWk.Split.assoc {A}
     ⟨_::Γ23, right w s, left w' s'⟩
   | left w s, both sa s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
-    let ⟨_, sa, w⟩ := wkRight w sa
+    let ⟨_, sa, w⟩ := distWkRight w sa
     ⟨_::Γ23, both sa s, left w s'⟩
   | right w s, s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
@@ -318,9 +317,9 @@ instance SplitOrWk.instSplits {A: Type u}
 instance SplitOrWk.instSplitWk {A: Type u}
   [Splits.{u, v} A] [Wkns.{u, w} A] [SplitWk.{u, v, w} A]
   : SplitWk.{u, max (u + 1) v w, _} (SplitOrWk A) where
-  arrSplit := Split.wk
-  splitArrLeft := Split.wkLeft
-  splitArrRight := Split.wkRight
+  wkSplit := Split.wk
+  splitWkLeft := Split.wkLeft
+  splitWkRight := Split.wkRight
 
 def DropOrWk (A: Type u) := List A
 
@@ -346,30 +345,30 @@ def DropOrWk.Wk.id {A} [Wkns.{u, w} A] [Drops.{u, d} A]
   | [] => nil
   | l::Γ => cons (wkId l) (id Γ)
 
-def DropOrWk.Wk.trans.{u, w, d} {A} [Wkns A] [DropWk.{u, w, d} A]
+def DropOrWk.Wk.trans.{u, w, d} {A} [Wkns A] [WkDrop.{u, w, d} A]
   {Γ Δ Ξ: DropOrWk A}: Wk.{u, w, d} Γ Δ -> Wk.{u, w, d} Δ Ξ -> Wk Γ Ξ
   | H, nil => H
   | cons w H, cons w' H' => cons (wkTrans w w') (trans H H')
-  | cons w H, discard d H' => discard (dropWk w d) (trans H H')
+  | cons w H, discard d H' => discard (wkDrop w d) (trans H H')
   | discard d H, H' => discard d (trans H H')
 
 instance DropOrWk.instWk {A: Type u}
-  [Wkns.{u, w} A] [DropWk.{u, w, d} A]: Wkns (DropOrWk A)
+  [Wkns.{u, w} A] [WkDrop.{u, w, d} A]: Wkns (DropOrWk A)
   where
   Wk := Wk
   wkId := Wk.id
   wkTrans := Wk.trans
 
-def DropOrWk.Wk.drop {A} [Wkns A] [DropWk A]
+def DropOrWk.Wk.drop {A} [Wkns A] [WkDrop A]
   {Γ Δ: DropOrWk A}: Wk Γ Δ -> Drop Δ -> Drop Γ
   | nil, _ => Drop.nil
-  | cons wa w, Drop.discard d D => Drop.discard (dropWk wa d) (drop w D)
+  | cons wa w, Drop.discard d D => Drop.discard (wkDrop wa d) (drop w D)
   | discard da w, D => Drop.discard da (drop w D)
 
 instance DropOrWk.instDropWk {A: Type u}
-  [Wkns.{u, w} A] [DropWk.{u, w, d} A]: DropWk (DropOrWk A)
+  [Wkns.{u, w} A] [WkDrop.{u, w, d} A]: WkDrop (DropOrWk A)
   where
-  dropArr := Wk.drop
+  wkDrop := Wk.drop
 
 inductive DropOrWk.Split.{u, v, w, d} {A: Type u}
   [S: Splits.{u, v} A] [W: Wkns.{u, w} A] [D: Drops.{u, d} A]
@@ -421,7 +420,7 @@ def DropOrWk.Split.assoc {A}
     ⟨_::Γ23, right w s, left w' s'⟩
   | left w s, both sa s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
-    let ⟨_, sa, w⟩ := wkRight w sa
+    let ⟨_, sa, w⟩ := distWkRight w sa
     ⟨_::Γ23, both sa s, left w s'⟩
   | left w s, discard d s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'

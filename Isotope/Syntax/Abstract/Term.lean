@@ -52,6 +52,8 @@ def Term.upcast.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   | pair s a b J => Term.pair s a b (Upcastable.upcastPair p J)
   | bind s x a e => Term.bind s x a (upcast p e)
 
+--TODO: quiver is a substitution...
+--TODO: quiver is a renaming...
 class Subst.{u, v, ss, sj, sv, sb, si, sc}
   (C: Type u)
   extends Lang.{u, v, ss, sj, sv, sb, si, sc} C, Quiver C
