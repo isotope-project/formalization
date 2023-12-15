@@ -5,6 +5,7 @@ namespace Abstract
 open Splits
 open Wkns
 open Drops
+open DropWk
 open MergeWk
 open BiasedDistWk
 open SplitDropArr
@@ -318,15 +319,62 @@ instance SplitOrWk.instMergeWk {A: Type u}
 
 def DropOrWk (A: Type u) := List A
 
+inductive DropOrWk.Drop.{u, w, d} {A: Type u}
+  [D: Drops.{u, d} A]
+  : DropOrWk A -> Type (max u w d)
+  | nil: Drop []
+  | discard {a}: D.Drop a -> Drop Γ -> Drop (a::Γ)
+
+instance DropOrWk.instDrop {A: Type u} [Drops A]: Drops (DropOrWk A)
+  where
+  Drop := Drop
+
+inductive DropOrWk.Wk.{u, w, d} {A: Type u}
+  [W: Wkns.{u, w} A] [D: Drops.{u, d} A]
+  : DropOrWk A -> DropOrWk A -> Type (max u w d)
+  | nil: Wk [] []
+  | cons {a b}: W.Wk a b -> Wk Γ Δ -> Wk (a :: Γ) (b :: Δ)
+  | discard {a}: D.Drop a -> Wk Γ Δ -> Wk (a :: Γ) Δ
+
+def DropOrWk.Wk.id {A} [Wkns.{u, w} A] [Drops.{u, d} A]
+  : (Γ: DropOrWk A) -> DropOrWk.Wk Γ Γ
+  | [] => nil
+  | l::Γ => cons (wkId l) (id Γ)
+
+def DropOrWk.Wk.trans.{u, w, d} {A} [Wkns A] [DropWk.{u, w, d} A]
+  {Γ Δ Ξ: DropOrWk A}: Wk.{u, w, d} Γ Δ -> Wk.{u, w, d} Δ Ξ -> Wk Γ Ξ
+  | H, nil => H
+  | cons w H, cons w' H' => cons (wkTrans w w') (trans H H')
+  | cons w H, discard d H' => discard (dropWk w d) (trans H H')
+  | discard d H, H' => discard d (trans H H')
+
+instance DropOrWk.instWk {A: Type u}
+  [Wkns.{u, w} A] [DropWk.{u, w, d} A]: Wkns (DropOrWk A)
+  where
+  Wk := Wk
+  wkId := Wk.id
+  wkTrans := Wk.trans
+
+def DropOrWk.Wk.drop {A} [Wkns A] [DropWk A]
+  {Γ Δ: DropOrWk A}: Wk Γ Δ -> Drop Δ -> Drop Γ
+  | nil, _ => Drop.nil
+  | cons wa w, Drop.discard d D => Drop.discard (dropWk wa d) (drop w D)
+  | discard da w, D => Drop.discard da (drop w D)
+
+instance DropOrWk.instDropWk {A: Type u}
+  [Wkns.{u, w} A] [DropWk.{u, w, d} A]: DropWk (DropOrWk A)
+  where
+  dropArr := Wk.drop
+
 inductive DropOrWk.Split.{u, v, w, d} {A: Type u}
-  [S: Splits.{u, v} A] [Wkns.{u, w} A] [Drops.{u, d} A]
-  : DropOrWk A -> DropOrWk A -> DropOrWk A -> Type (max u v w d)
+  [S: Splits.{u, v} A] [W: Wkns.{u, w} A] [D: Drops.{u, d} A]
+  : DropOrWk A -> DropOrWk A -> DropOrWk A -> Sort (max (u + 1) v w d)
   | nil: Split [] [] []
-  | left {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) (b::Δ) Ξ
-  | right {a b}: Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) Δ (b::Ξ)
+  | left {a b}: W.Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) (b::Δ) Ξ
+  | right {a b}: W.Wk a b -> Split Γ Δ Ξ -> Split (a::Γ) Δ (b::Ξ)
   | both {a b c: A} {Γ Δ Ξ: List A}: S.Split a b c -> Split Γ Δ Ξ ->
     Split (a :: Γ) (b :: Δ) (c :: Ξ)
-  | discard {a: A}: Drop a -> Split Γ Δ Ξ -> Split (a::Γ) Δ Ξ
+  | discard {a: A}: D.Drop a -> Split Γ Δ Ξ -> Split (a::Γ) Δ Ξ
 
 @[match_pattern]
 def DropOrWk.Split.sleft.{u, v, w, d} {A: Type u}
