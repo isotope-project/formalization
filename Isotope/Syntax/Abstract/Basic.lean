@@ -118,6 +118,14 @@ class Wkns.{u, v} (A: Type u): Type (max u v) where
   wkId: (a: A) -> Wk a a
   wkTrans {a b c: A}: Wk a b -> Wk b c -> Wk a c
 
+class SWkns.{u, v, w} (A: Type u)
+  extends Wkns.{u, v} A: Type (max u v w)
+  where
+  SWk: A -> A -> Sort w
+  swkId: (a: A) -> SWk a a
+  swkTrans {a b c: A}: SWk a b -> SWk b c -> SWk a c
+  swkToWk {a b: A}: SWk a b -> Wk a b
+
 -- instance Wkns.instQuiverLike {A: Type u}
 --   : QuiverLike A (Wkns A) where
 --   toQuiver W := { Hom := W.Wk }
@@ -158,6 +166,7 @@ class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
 class Splats.{u, v} (A: Type u) extends Splits.{u, v} A
   : Type (max u v) where
   Splat: A -> A -> A -> Sort v
+  splitToSplat {a b c: A}: Split a b c -> Splat a b c
   splatSymm {a b c: A}: Splat a b c -> Splat a c b
   splatAssoc {a123 a12 a1 a2 a3: A}:
     Splat a123 a12 a3 -> Splat a12 a1 a2 ->
