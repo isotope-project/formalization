@@ -17,17 +17,25 @@ class ResourceAlgebra (T: Type u) extends
   valid: T -> T -> Prop
   valid_id x: valid 0 x
   zero_min x: le x 0 -> x = 0
-  valid_le x y y': le y' y -> valid x y -> valid x y'
+  -- cancel_zero_left: ∀ x y, add x y = 0 -> x = 0
   valid_symm: ∀ x y, valid x y -> valid y x
-  valid_assoc_mp: ∀ x y z, valid x y -> valid y z ->
-    valid (x + y) z -> valid x (y + z)
-  valid_assoc_mpr: ∀x y z: T,  valid x y -> valid y z
-    -> valid x (y + z) -> valid (x + y) z
-    := λ x y z Hxy Hyz Hxyz
-      => valid_symm _ _ ((add_comm x y) ▸ valid_assoc_mp z y x
-        (valid_symm _ _ Hyz)
-        (valid_symm _ _ Hxy)
-        (add_comm y z ▸ valid_symm _ _ Hxyz))
+  valid_le_right: ∀ x y y', le y' y -> valid x y -> valid x y'
+  valid_le_left: ∀x x' y, le x' x -> valid x y -> valid x' y
+    := λ _ _ _ Hxx' Hxy => valid_symm _ _
+      (valid_le_right _ _ _ Hxx' (valid_symm _ _ Hxy))
+  valid_left_assoc: ∀ x y z, valid (x + y) z -> valid x y -> valid y z
+  valid_assoc_mp: ∀ x y z, valid x y -> valid (x + y) z -> valid x (y + z)
+  valid_right_assoc: ∀ x y z, valid x (y + z) -> valid y z -> valid x y
+    := λ x y z Hxyz Hyz
+      => valid_symm y x
+        (valid_left_assoc _ _ _ (valid_symm _ _ (add_comm y z ▸ Hxyz))
+          (valid_symm y z Hyz))
+
+def ResourceAlgebra.valid_assoc_mpr {T} [ResourceAlgebra T]
+  (x y z: T) (Hyz: valid y z) (Hxyz: valid x (y + z)): valid (x + y) z
+  := valid_symm _ _ ((add_comm x y) ▸ valid_assoc_mp z y x
+      (valid_symm _ _ Hyz)
+      (add_comm y z ▸ valid_symm _ _ Hxyz))
 
   -- mandatory separation between values and ghosts
   -- NOTE: if this is not enforced, we're allowed "pure ghost" values which
@@ -80,14 +88,19 @@ def ResourceAlgebra.affineAlgebra (T: Type u) [R: ResourceAlgebra T]
   valid x y := x = 0 ∨ y = 0
   valid_id y := Or.inl rfl
   zero_min := R.zero_min
-  valid_le _x _y _y' H
+  -- cancel_zero_left := R.cancel_zero_left
+  valid_le_right _x _y _y' H
     | Or.inl Hx => Or.inl Hx
     | Or.inr Hy => Or.inr (R.zero_min _ (Hy ▸ H))
   valid_symm _ _ | Hxy => Hxy.elim Or.inr Or.inl
-  valid_assoc_mp _ _ _
-    | Or.inl Hx, _, _ => Or.inl Hx
-    | Or.inr Hy, _, Or.inr Hz => by simp [Hy, Hz]
-    | Or.inr Hy, _, Or.inl Hxy => by rw [<-Hxy]; simp [Hy]
+  valid_left_assoc _x _y _z
+    | Or.inl Hxy, Or.inl Hx => Or.inl (by rw [<-Hxy, Hx, zero_add])
+    | Or.inr Hz, _ => Or.inr Hz
+    | _, Or.inr Hy => Or.inl Hy
+  valid_assoc_mp _x _y _z
+    | Or.inl Hx, _ => Or.inl Hx
+    | Or.inr Hy, Or.inl Hxy => Or.inl (by rw [<-Hxy, Hy, add_zero])
+    | Or.inr Hy, Or.inr Hz => Or.inr (by rw [Hy, Hz, add_zero])
 
 def ResourceAlgebra.affineSubalgebra (T: Type u) [R: ResourceAlgebra T]
   : (R.affineAlgebra).Subalgebra R where
@@ -108,9 +121,10 @@ def ResourceAlgebra.relevantAlgebra (T: Type u) [R: ResourceAlgebra T]
   add_le_add_left _ _ | rfl, _ => rfl
   valid := R.valid
   valid_id := R.valid_id
-  valid_le _ _ _ H V := H ▸ V
+  valid_le_right _ _ _ H V := H ▸ V
   zero_min _ H := H
   valid_symm := R.valid_symm
+  valid_left_assoc := R.valid_left_assoc
   valid_assoc_mp := R.valid_assoc_mp
 
 def ResourceAlgebra.relevantSubalgebra (T: Type u) [R: ResourceAlgebra T]
@@ -130,13 +144,17 @@ def ResourceAlgebra.linearAlgebra (T: Type u) [R: AddCommMonoid T]
   add_le_add_left _ _ | rfl, _ => rfl
   valid x y := x = 0 ∨ y = 0
   valid_id y := Or.inl rfl
-  valid_le _ _ _ H V := H ▸ V
+  valid_le_right _ _ _ H V := H ▸ V
   zero_min _ H := H
   valid_symm _ _ | Hxy => Hxy.elim Or.inr Or.inl
-  valid_assoc_mp _ _ _
-    | Or.inl Hx, _, _ => Or.inl Hx
-    | Or.inr Hy, _, Or.inr Hz => by simp [Hy, Hz]
-    | Or.inr Hy, _, Or.inl Hxy => by rw [<-Hxy]; simp [Hy]
+  valid_left_assoc _x _y _z
+    | Or.inl Hxy, Or.inl Hx => Or.inl (by rw [<-Hxy, Hx, zero_add])
+    | Or.inr Hz, _ => Or.inr Hz
+    | _, Or.inr Hy => Or.inl Hy
+  valid_assoc_mp _x _y _z
+    | Or.inl Hx, _ => Or.inl Hx
+    | Or.inr Hy, Or.inl Hxy => Or.inl (by rw [<-Hxy, Hy, add_zero])
+    | Or.inr Hy, Or.inr Hz => Or.inr (by rw [Hy, Hz, add_zero])
 
 def ResourceAlgebra.linearSubalgebra (T: Type u) [R: ResourceAlgebra T]
   : (linearAlgebra T).Subalgebra R where
@@ -178,8 +196,8 @@ def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
     | Or.inr rfl, _ => Or.inr rfl
   valid x y := (q.rel ∧ R.valid x y) ∨ x = 0 ∨ y = 0
   valid_id y := Or.inr (Or.inl rfl)
-  valid_le _x _y _y'
-    | Or.inl ⟨_, H⟩, Or.inl ⟨Hr, V⟩ => Or.inl ⟨Hr, valid_le _ _ _ H V⟩
+  valid_le_right _x _y _y'
+    | Or.inl ⟨_, H⟩, Or.inl ⟨Hr, V⟩ => Or.inl ⟨Hr, valid_le_right _ _ _ H V⟩
     | Or.inl _, Or.inr (Or.inl H') => Or.inr (Or.inl H')
     | Or.inl ⟨_, H⟩, Or.inr (Or.inr H') => Or.inr (Or.inr (zero_min _ (H' ▸ H)))
     | Or.inr H, V => H ▸ V
@@ -189,22 +207,31 @@ def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
   valid_symm _ _
     | Or.inl Hxy => Or.inl ⟨Hxy.1, R.valid_symm _ _ Hxy.2⟩
     | Or.inr Hxy => Or.inr (Or.elim Hxy Or.inr Or.inl)
-  valid_assoc_mp x y z
-    | Or.inl ⟨Hr, Hxy⟩, Hyz, Hxyz
-      => Or.inl ⟨Hr, R.valid_assoc_mp _ _ _ Hxy
-        (match Hyz with
-          | Or.inl H => H.2
-          | Or.inr (Or.inl H) => H ▸ R.valid_id _
-          | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _) )
-        (match Hxyz with
-          | Or.inl H => H.2
-          | Or.inr (Or.inl H) => H ▸ R.valid_id _
-          | Or.inr (Or.inr H) => H ▸ R.valid_symm _ _ (R.valid_id _) )⟩
-    | Or.inr (Or.inl Hx), _, _ => Or.inr (Or.inl Hx)
-    | Or.inr (Or.inr Hy), Hz, Or.inl ⟨Hr, Hyz⟩ =>
-      Or.inl ⟨Hr, by simp only [Hy, add_zero, zero_add] at *; exact Hyz⟩
-    | Or.inr (Or.inr Hy), _, Or.inr (Or.inr Hz) => by simp [Hy, Hz]
-    | Or.inr (Or.inr Hy), _, Or.inr (Or.inl Hxy) => by rw [<-Hxy]; simp [Hy]
+  valid_left_assoc _x _y _z
+    | Or.inl ⟨Hr, Hxyz⟩, Or.inl ⟨_, Hxy⟩
+      => Or.inl ⟨Hr, R.valid_left_assoc _ _ _ Hxyz Hxy⟩
+    | Or.inl ⟨Hr, Hxyz⟩, Or.inr (Or.inl Hx)
+      => Or.inl ⟨Hr, by simp [Hx] at Hxyz; exact Hxyz⟩
+    | _, Or.inr (Or.inr Hy) => Or.inr (Or.inl Hy)
+    | Or.inr (Or.inl Hxy), Or.inl ⟨Hr, Hxy'⟩
+      => Or.inl ⟨Hr, valid_left_assoc _ _ _ (Hxy.symm ▸ valid_id _) Hxy'⟩
+    | Or.inr (Or.inl Hxy), Or.inr (Or.inl Hx)
+      => Or.inr (Or.inl (by rw [<-Hxy, Hx, zero_add]))
+    | Or.inr (Or.inr Hz), _ => Or.inr (Or.inr Hz)
+  valid_assoc_mp _x _y _z
+    | Or.inl ⟨Hr, Hxy⟩, Or.inl ⟨_, Hxyz⟩
+      => Or.inl ⟨Hr, R.valid_assoc_mp _ _ _ Hxy Hxyz⟩
+    | Or.inl ⟨Hr, Hxy⟩, Or.inr (Or.inl Hxy')
+      => Or.inl ⟨Hr, R.valid_assoc_mp _ _ _ Hxy (Hxy'.symm ▸ valid_id _)⟩
+    | Or.inl ⟨Hr, Hxy⟩, Or.inr (Or.inr Hz)
+      => Or.inl ⟨Hr, by rw [Hz, add_zero]; exact Hxy⟩
+    | Or.inr (Or.inl Hx), _ => Or.inr (Or.inl Hx)
+    | Or.inr (Or.inr Hy), Or.inl ⟨Hr, Hxyz⟩
+      => Or.inl ⟨Hr, by simp only [Hy, add_zero, zero_add] at *; exact Hxyz⟩
+    | Or.inr (Or.inr Hy), Or.inr (Or.inl Hxy)
+      => Or.inr (Or.inl (by simp only [Hy, add_zero] at Hxy; exact Hxy))
+    | Or.inr (Or.inr Hy), Or.inr (Or.inr Hz)
+      => Or.inr (Or.inr (by simp [Hy, Hz]))
 
 theorem ResourceAlgebra.transparentAlgebra_int
   (T: Type u) [R: ResourceAlgebra T]
@@ -330,24 +357,27 @@ instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
   valid _ _ := true
   valid_id _ := by trivial
   zero_min _ H := by cases H; rfl
-  valid_le := by intros; trivial
+  valid_le_right := by intros; trivial
   valid_symm := by intros; trivial
+  valid_left_assoc := by intros; trivial
   valid_assoc_mp := by intros; trivial
 
 instance ResourceAlgebra.instResourceAlgebraPair {A B}
   [ResourceAlgebra A] [ResourceAlgebra B]
   : ResourceAlgebra (A × B) where
-  valid | ⟨xa, xb⟩, ⟨ya, yb⟩ => valid xa ya ∧ valid xb yb
+  valid x y := valid x.1 y.1 ∧ valid x.2 y.2
   valid_id | ⟨a, b⟩ => ⟨valid_id a, valid_id b⟩
   zero_min
     | ⟨_l, _r⟩, ⟨Hl, Hr⟩
     => by simp only [] at *; rw [zero_min _ Hl, zero_min _ Hr]; rfl
-  valid_le _ _ _ H V := ⟨valid_le _ _ _ H.1 V.1, valid_le _ _ _ H.2 V.2⟩
+  valid_le_right _ _ _ H V := ⟨valid_le_right _ _ _ H.1 V.1, valid_le_right _ _ _ H.2 V.2⟩
   valid_symm _ _ | ⟨Ha, Hb⟩ => ⟨valid_symm _ _ Ha, valid_symm _ _ Hb⟩
+  valid_left_assoc _ _ _ H H' :=
+    ⟨valid_left_assoc _ _ _ H.1 H'.1, valid_left_assoc _ _ _ H.2 H'.2⟩
   valid_assoc_mp _ _ _
-    | ⟨Hxya, Hxyb⟩, ⟨Hyza, Hyzb⟩, ⟨Hxyza, Hxyzb⟩
-    => ⟨valid_assoc_mp _ _ _ Hxya Hyza Hxyza,
-        valid_assoc_mp _ _ _ Hxyb Hyzb Hxyzb⟩
+    | ⟨Hxya, Hxyb⟩, ⟨Hxyza, Hxyzb⟩
+    => ⟨valid_assoc_mp _ _ _ Hxya Hxyza,
+        valid_assoc_mp _ _ _ Hxyb Hxyzb⟩
 
 class ResourceAlgebraFamily.{u, v} (T: Type u) where
   res: T -> Type v
@@ -392,21 +422,23 @@ def ResourceAlgebra.Split.sum {T: Type u} [ResourceAlgebra T]
   {l r: T} (H: valid l r): Split (l + r) l r
   := ⟨le_refl _, H⟩
 
--- def ResourceAlgebra.Split.assoc {T: Type u} [R: ResourceAlgebra T]
---   {x123 x12 x1 x2 x3: T}
---   : Split x123 x12 x3 -> Split x12 x1 x2
---     -> Split x123 x1 (x2 + x3) ∧ Split (x2 + x3) x2 x3
---   | ⟨Hx123, V123⟩, ⟨Hx12, V12⟩ => ⟨
---       ⟨le_trans (R.add_assoc _ _ _ ▸ add_le_add_right Hx12 _) Hx123,
---         sorry⟩,
---       ⟨sorry, sorry⟩
---     ⟩
+def ResourceAlgebra.Split.assoc {T: Type u} [R: ResourceAlgebra T]
+  {x123 x12 x1 x2 x3: T}
+  : Split x123 x12 x3 -> Split x12 x1 x2
+    -> Split x123 x1 (x2 + x3) ∧ Split (x2 + x3) x2 x3
+  | ⟨Hx123, V123⟩, ⟨Hx12, V12⟩ =>
+    have Hx123' := valid_le_left _ _ _ Hx12 V123
+    have Hx123'' := valid_assoc_mp _ _ _ V12 Hx123'
+    ⟨⟨le_trans (R.add_assoc _ _ _ ▸ add_le_add_right Hx12 _) Hx123, Hx123''⟩,
+     ⟨le_refl _, valid_left_assoc _ _ _ Hx123' V12⟩⟩
 
--- instance ResourceAlgebra.instSplits {T: Type u} [ResourceAlgebra T]
---   : Splits T where
---   Split := Split
---   splitSymm := Split.symm
---   splitAssoc := sorry
+instance ResourceAlgebra.instSplits {T: Type u} [ResourceAlgebra T]
+  : Splits T where
+  Split := Split
+  splitSymm := Split.symm
+  splitAssoc s12_3 s12 :=
+    let ⟨s1_23, s23⟩ := s12_3.assoc s12
+    ⟨_, s1_23, s23⟩
 
 def ResourceAlgebra.QSplit {T: Type u} [ResourceAlgebra T]
   (q: Transparency) (x l r: T): Prop
