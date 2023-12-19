@@ -1,3 +1,5 @@
+--TODO: factor out abstract split theory from abstract comonoid theory?
+
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.CategoryTheory.DiscreteCategory
 

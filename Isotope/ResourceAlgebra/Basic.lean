@@ -4,6 +4,9 @@ import Mathlib.Algebra.Group.Ext
 import Mathlib.Init.Order.Defs
 
 import Isotope.Syntax.Ty
+import Isotope.Syntax.Abstract.Basic
+
+open Abstract
 
 --TODO: class for binary validity relation?
 class ResourceAlgebra (T: Type u) extends
@@ -13,6 +16,8 @@ class ResourceAlgebra (T: Type u) extends
   -- Emulating a partial commutative monoid via `valid`:
   valid: T -> T -> Prop
   valid_id x: valid 0 x
+  zero_min x: le x 0 -> x = 0
+  valid_le x y y': le y' y -> valid x y -> valid x y'
   valid_symm: ∀ x y, valid x y -> valid y x
   valid_assoc_mp: ∀ x y z, valid x y -> valid y z ->
     valid (x + y) z -> valid x (y + z)
@@ -74,6 +79,10 @@ def ResourceAlgebra.affineAlgebra (T: Type u) [R: ResourceAlgebra T]
   : ResourceAlgebra T where
   valid x y := x = 0 ∨ y = 0
   valid_id y := Or.inl rfl
+  zero_min := R.zero_min
+  valid_le _x _y _y' H
+    | Or.inl Hx => Or.inl Hx
+    | Or.inr Hy => Or.inr (R.zero_min _ (Hy ▸ H))
   valid_symm _ _ | Hxy => Hxy.elim Or.inr Or.inl
   valid_assoc_mp _ _ _
     | Or.inl Hx, _, _ => Or.inl Hx
@@ -99,6 +108,8 @@ def ResourceAlgebra.relevantAlgebra (T: Type u) [R: ResourceAlgebra T]
   add_le_add_left _ _ | rfl, _ => rfl
   valid := R.valid
   valid_id := R.valid_id
+  valid_le _ _ _ H V := H ▸ V
+  zero_min _ H := H
   valid_symm := R.valid_symm
   valid_assoc_mp := R.valid_assoc_mp
 
@@ -119,6 +130,8 @@ def ResourceAlgebra.linearAlgebra (T: Type u) [R: AddCommMonoid T]
   add_le_add_left _ _ | rfl, _ => rfl
   valid x y := x = 0 ∨ y = 0
   valid_id y := Or.inl rfl
+  valid_le _ _ _ H V := H ▸ V
+  zero_min _ H := H
   valid_symm _ _ | Hxy => Hxy.elim Or.inr Or.inl
   valid_assoc_mp _ _ _
     | Or.inl Hx, _, _ => Or.inl Hx
@@ -165,6 +178,14 @@ def ResourceAlgebra.transparentAlgebra (T: Type u) [R: ResourceAlgebra T]
     | Or.inr rfl, _ => Or.inr rfl
   valid x y := (q.rel ∧ R.valid x y) ∨ x = 0 ∨ y = 0
   valid_id y := Or.inr (Or.inl rfl)
+  valid_le _x _y _y'
+    | Or.inl ⟨_, H⟩, Or.inl ⟨Hr, V⟩ => Or.inl ⟨Hr, valid_le _ _ _ H V⟩
+    | Or.inl _, Or.inr (Or.inl H') => Or.inr (Or.inl H')
+    | Or.inl ⟨_, H⟩, Or.inr (Or.inr H') => Or.inr (Or.inr (zero_min _ (H' ▸ H)))
+    | Or.inr H, V => H ▸ V
+  zero_min _x
+    | Or.inl ⟨_, H⟩ => R.zero_min _ H
+    | Or.inr H => H
   valid_symm _ _
     | Or.inl Hxy => Or.inl ⟨Hxy.1, R.valid_symm _ _ Hxy.2⟩
     | Or.inr Hxy => Or.inr (Or.elim Hxy Or.inr Or.inl)
@@ -308,6 +329,8 @@ instance VarState.instOrderedAddCommMonoid: OrderedAddCommMonoid VarState where
 instance VarState.instResourceAlgebra: ResourceAlgebra VarState where
   valid _ _ := true
   valid_id _ := by trivial
+  zero_min _ H := by cases H; rfl
+  valid_le := by intros; trivial
   valid_symm := by intros; trivial
   valid_assoc_mp := by intros; trivial
 
@@ -316,6 +339,10 @@ instance ResourceAlgebra.instResourceAlgebraPair {A B}
   : ResourceAlgebra (A × B) where
   valid | ⟨xa, xb⟩, ⟨ya, yb⟩ => valid xa ya ∧ valid xb yb
   valid_id | ⟨a, b⟩ => ⟨valid_id a, valid_id b⟩
+  zero_min
+    | ⟨_l, _r⟩, ⟨Hl, Hr⟩
+    => by simp only [] at *; rw [zero_min _ Hl, zero_min _ Hr]; rfl
+  valid_le _ _ _ H V := ⟨valid_le _ _ _ H.1 V.1, valid_le _ _ _ H.2 V.2⟩
   valid_symm _ _ | ⟨Ha, Hb⟩ => ⟨valid_symm _ _ Ha, valid_symm _ _ Hb⟩
   valid_assoc_mp _ _ _
     | ⟨Hxya, Hxyb⟩, ⟨Hyza, Hyzb⟩, ⟨Hxyza, Hxyzb⟩
@@ -354,19 +381,49 @@ instance ResourceAlgebraFamily.instResourceAlgebraFamilyTy
   res := Ty.res
   resourceAlgebra := Ty.resourceAlgebra
 
-def ResourceAlgebra.splits {T: Type u} [ResourceAlgebra T]
+def ResourceAlgebra.Split {T: Type u} [ResourceAlgebra T]
   (x l r: T): Prop := x ≥ l + r ∧ valid l r
 
-def ResourceAlgebra.qsplits {T: Type u} [ResourceAlgebra T]
-  (q: Transparency) (x l r: T): Prop
-  := @splits T (ResourceAlgebra.transparentAlgebra T q) x l r
+def ResourceAlgebra.Split.symm {T: Type u} [R: ResourceAlgebra T]
+  {x l r: T}: Split x l r -> Split x r l
+  | ⟨Hxlr, Vlr⟩ => ⟨R.add_comm _ _ ▸ Hxlr, R.valid_symm _ _ Vlr⟩
 
-theorem ResourceAlgebra.qsplits_rel {T: Type u} [ResourceAlgebra T]
-  {q} {x l r: T}: qsplits q x l r -> q.rel ∨ l = 0 ∨ r = 0
+def ResourceAlgebra.Split.sum {T: Type u} [ResourceAlgebra T]
+  {l r: T} (H: valid l r): Split (l + r) l r
+  := ⟨le_refl _, H⟩
+
+-- def ResourceAlgebra.Split.assoc {T: Type u} [R: ResourceAlgebra T]
+--   {x123 x12 x1 x2 x3: T}
+--   : Split x123 x12 x3 -> Split x12 x1 x2
+--     -> Split x123 x1 (x2 + x3) ∧ Split (x2 + x3) x2 x3
+--   | ⟨Hx123, V123⟩, ⟨Hx12, V12⟩ => ⟨
+--       ⟨le_trans (R.add_assoc _ _ _ ▸ add_le_add_right Hx12 _) Hx123,
+--         sorry⟩,
+--       ⟨sorry, sorry⟩
+--     ⟩
+
+-- instance ResourceAlgebra.instSplits {T: Type u} [ResourceAlgebra T]
+--   : Splits T where
+--   Split := Split
+--   splitSymm := Split.symm
+--   splitAssoc := sorry
+
+def ResourceAlgebra.QSplit {T: Type u} [ResourceAlgebra T]
+  (q: Transparency) (x l r: T): Prop
+  := @Split T (ResourceAlgebra.transparentAlgebra T q) x l r
+
+theorem ResourceAlgebra.qsplit_rel {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: QSplit q x l r -> q.rel ∨ l = 0 ∨ r = 0
   | ⟨_, Or.inl Hv⟩ => Or.inl Hv.1
   | ⟨_, Or.inr Hv⟩ => Or.inr Hv
 
-theorem ResourceAlgebra.qsplits_aff {T: Type u} [ResourceAlgebra T]
-  {q} {x l r: T}: qsplits q x l r -> q.aff ∨ l + r = x
+theorem ResourceAlgebra.qsplit_aff {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: QSplit q x l r -> q.aff ∨ l + r = x
   | ⟨Or.inl H, _⟩ => Or.inl H.1
   | ⟨Or.inr H, _⟩ => Or.inr H
+
+theorem ResourceAlgebra.qsplit_split {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: QSplit q x l r -> Split x l r
+  | ⟨Hxlr, Vlr⟩ => ⟨
+    (transparentSubalgebra _ q).le_sub (l + r) x Hxlr,
+    (transparentSubalgebra _ q).valid_sub _ _ Vlr⟩
