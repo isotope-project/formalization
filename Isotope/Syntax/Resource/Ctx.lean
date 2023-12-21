@@ -108,3 +108,19 @@ instance Var.instPartialOrder {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   le_antisymm x x' H H' :=
     have Ht := le_antisymm H.2 H'.2;
     by cases x; cases x'; simp only [] at *; rw [Ht, H.1]
+
+structure Comp (T: Type v) [ResourceAlgebraFamily T]
+  extends Res T where
+  central: Bool
+
+instance Comp.instPartialOrder {T: Type v} [ResourceAlgebraFamily T]
+  : PartialOrder (Comp T) where
+  le l r := l.central ≤ r.central
+    ∧ l.toRes ≤ r.toRes
+  le_refl _ := ⟨le_refl _, le_refl _⟩
+  le_trans _ _ _ H H'
+    := ⟨le_trans H.1 H'.1, le_trans H.2 H'.2⟩
+  le_antisymm x x' H H' :=
+    have Hc := le_antisymm H.1 H'.1;
+    have Ht := le_antisymm H.2 H'.2;
+    by cases x; cases x'; simp only [] at *; rw [Ht, Hc]
