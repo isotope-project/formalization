@@ -1,6 +1,7 @@
 import Isotope.Syntax.Ty
 import Isotope.ResourceAlgebra.Basic
 import Isotope.Syntax.Abstract.Basic
+import Isotope.Syntax.Abstract.List
 
 open Abstract
 
@@ -10,6 +11,9 @@ structure Res (T: Type v) [ResourceAlgebraFamily T] where
   ty: Ty T
   res: ty.res
   qnt: Transparency
+
+instance Res.instDrops {T} [ResourceAlgebraFamily T]: Drops (Res T) where
+  Drop v := ResourceAlgebra.QWk v.qnt v.res 0
 
 --TODO: define Res.le inductively, and prove equal?
 -- Why does kernel leave metavariables here?
@@ -94,6 +98,11 @@ instance Res.instSplits [ResourceAlgebraFamily T]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
+--TODO: Res.instSplitWk
+
+--TODO: Res.instSplitDropWk
+
+
 structure Var (N: Type u) (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
   name: N
@@ -139,6 +148,22 @@ instance Var.instSplits {N} {T} [ResourceAlgebraFamily T]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
+instance Var.instDrops {N} {T} [ResourceAlgebraFamily T]
+  : Drops (Var N T) where
+  Drop v := Drops.Drop v.toRes
+
+instance Var.instWk {N} {T} [ResourceAlgebraFamily T]
+  : Wkns (Var N T) := PRes.instWkns
+
+--TODO:
+-- instance Var.instSplitWk {N} {T} [ResourceAlgebraFamily T]
+--   : SplitWk (Var N T) where
+--   wkSplit | ⟨Heq, Hr, Hq⟩, ⟨Hs, Hel, Her⟩ => sorry
+--   splitWkLeft := sorry
+--   splitWkRight := sorry
+
+--TODO: var.instSplitDropWk
+
 structure Comp (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
   central: Bool
@@ -154,3 +179,33 @@ instance Comp.instPartialOrder {T: Type v} [ResourceAlgebraFamily T]
     have Hc := le_antisymm H.1 H'.1;
     have Ht := le_antisymm H.2 H'.2;
     by cases x; cases x'; simp only [] at *; rw [Ht, Hc]
+
+def Ctx (N: Type u) (T: Type v) [ResourceAlgebraFamily T] := List (Var N T)
+
+def Ctx.SSplit {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T → Ctx N T → Ctx N T → Type _
+  := @Elementwise.Split (Var N T) _
+
+def Ctx.SSplit.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: SSplit Γ Δ Ξ -> SSplit Γ Ξ Δ
+  := Elementwise.Split.symm
+
+def Ctx.SSplit.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
+  : SSplit Γ123 Γ12 Γ3 -> SSplit Γ12 Γ1 Γ2 ->
+    (Γ23: Ctx N T) ×' (_: SSplit Γ123 Γ1 Γ23) ×' SSplit Γ23 Γ2 Γ3
+  := Elementwise.Split.assoc
+
+-- def Ctx.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+--   : Ctx N T → Ctx N T → Ctx N T → Type _
+--   := @DropOrWk.Split (Var N T) _
+
+-- def Ctx.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+--   {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Split Γ Ξ Δ
+--   := Elementwise.Split.symm
+
+-- def Ctx.Split.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+--   {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
+--   : Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
+--     (Γ23: Ctx N T) ×' (_: Split Γ123 Γ1 Γ23) ×' Split Γ23 Γ2 Γ3
+--   := Elementwise.Split.assoc

@@ -467,6 +467,20 @@ instance ResourceAlgebra.instSplits {T: Type u} [ResourceAlgebra T]
     let ⟨s1_23, s23⟩ := s12_3.assoc s12
     ⟨_, s1_23, s23⟩
 
+instance ResourceAlgebra.instWk {T: Type u} [ResourceAlgebra T]
+  : Wkns T := PRes.instWkns
+
+--TODO: swap valid_le left/right here? splitWk?
+instance ResourceAlgebra.instSplitWk {T: Type u} [ResourceAlgebra T]
+  : SplitWk T where
+  wkSplit w s := ⟨le_trans s.1 w, s.2⟩
+  splitWkLeft s w := ⟨
+    le_trans (add_le_add_right w _) s.1,
+    valid_le_left _ _ _ w s.2⟩
+  splitWkRight s w := ⟨
+    le_trans (add_le_add_left w _) s.1,
+    valid_le_right _ _ _ w s.2⟩
+
 def ResourceAlgebra.QSplit {T: Type u} [ResourceAlgebra T]
   (q: Transparency) (x l r: T): Prop
   := @Split T (ResourceAlgebra.transparentAlgebra T q) x l r
