@@ -88,7 +88,7 @@ def Res.Split.assoc {T: Type v} [ResourceAlgebraFamily T]
   := let A := s12_3.assoc' s1_2
     ⟨A.1, A.2.1, A.2.2⟩
 
-instance Res.instSplit [ResourceAlgebraFamily T]
+instance Res.instSplits [ResourceAlgebraFamily T]
   : Splits (Res T) where
   Split := Split
   splitSymm := Split.symm
@@ -108,6 +108,36 @@ instance Var.instPartialOrder {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   le_antisymm x x' H H' :=
     have Ht := le_antisymm H.2 H'.2;
     by cases x; cases x'; simp only [] at *; rw [Ht, H.1]
+
+structure Var.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  (v l r: Var N T): Prop where
+  res: v.toRes.Split l.toRes r.toRes
+  left_name: l.name = v.name
+  right_name: r.name = v.name
+
+def Var.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {v l r: Var N T}: Split v l r -> Split v r l
+  | ⟨s, Hl, Hr⟩ => ⟨s.symm, Hr, Hl⟩
+
+def Var.Split.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {v123 v12 v1 v2 v3: Var N T}
+  (s12_3: Split v123 v12 v3) (s1_2: Split v12 v1 v2)
+  : (v23: Var N T) ×' (_: Split v123 v1 v23) ×' Split v23 v2 v3
+  :=
+    let ⟨r23, sr1_23, sr2_3⟩ := s12_3.res.assoc s1_2.res
+    ⟨⟨r23, v123.name⟩,
+      ⟨sr1_23,
+        by rw [s1_2.left_name, s12_3.left_name],
+        rfl⟩,
+      ⟨sr2_3,
+        by rw [s1_2.right_name, s12_3.left_name],
+        s12_3.right_name⟩⟩
+
+instance Var.instSplits {N} {T} [ResourceAlgebraFamily T]
+  : Splits (Var N T) where
+  Split := Var.Split
+  splitSymm := Split.symm
+  splitAssoc := Split.assoc
 
 structure Comp (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
