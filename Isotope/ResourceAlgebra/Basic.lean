@@ -164,6 +164,20 @@ def ResourceAlgebra.linearSubalgebra (T: Type u) [R: ResourceAlgebra T]
     | Or.inl H => H ▸ (valid_id _)
     | Or.inr H => H ▸ (valid_symm _ _ (valid_id _))
 
+def ResourceAlgebra.linearAffineSubalgebra (T: Type u) [ResourceAlgebra T]
+  : (linearAlgebra T).Subalgebra (affineAlgebra T) where
+  add_eq := rfl
+  le_sub _ _ | rfl => le_refl _
+  valid_sub _ _ := id
+
+def ResourceAlgebra.linearRelevantSubalgebra (T: Type u) [R: ResourceAlgebra T]
+  : (linearAlgebra T).Subalgebra (relevantAlgebra T) where
+  add_eq := rfl
+  le_sub _ _ := id
+  valid_sub
+    | _, _, Or.inl rfl => R.valid_id _
+    | _, _, Or.inr rfl => R.valid_symm _ _ (R.valid_id _)
+
 def ResourceAlgebra.transparentAlgebra' (T: Type u) [R: ResourceAlgebra T]
   : Transparency -> ResourceAlgebra T
   | ⟨true, true⟩ => R
@@ -306,6 +320,19 @@ theorem ResourceAlgebra.transparentSubalgebra
   (q: Transparency): (R.transparentAlgebra q).Subalgebra R
   := R.transparentAlgebra_char q ▸ R.transparentSubalgebra' q
 
+theorem ResourceAlgebra.transparentLeSubalgebra
+  (T: Type u) [R: ResourceAlgebra T]
+  {q q': Transparency} (Hq: q ≤ q'):
+  (R.transparentAlgebra q).Subalgebra (R.transparentAlgebra q')
+  where
+  add_eq := rfl
+  le_sub _ _
+    | Or.inl ⟨Hrel, H⟩ => Or.inl ⟨Hq.1 Hrel, H⟩
+    | Or.inr rfl => Or.inr rfl
+  valid_sub _ _
+    | Or.inl ⟨Hrel, H⟩ => Or.inl ⟨Hq.2 Hrel, H⟩
+    | Or.inr H => Or.inr H
+
 def LinT (_: Transparency) (T: Type u) := T
 
 instance LinT.instResourceAlgebra (T: Type u) [ResourceAlgebra T]
@@ -443,6 +470,28 @@ instance ResourceAlgebra.instSplits {T: Type u} [ResourceAlgebra T]
 def ResourceAlgebra.QSplit {T: Type u} [ResourceAlgebra T]
   (q: Transparency) (x l r: T): Prop
   := @Split T (ResourceAlgebra.transparentAlgebra T q) x l r
+
+--TODO: QWk x x' iff QSplit x' x 0 iff QSplit x x' 0
+def ResourceAlgebra.QWk {T: Type u} [ResourceAlgebra T]
+  (q: Transparency) (x x': T): Prop
+  := (ResourceAlgebra.transparentAlgebra T q).le x' x
+
+def ResourceAlgebra.QSplit.upcast {T: Type u} [ResourceAlgebra T]
+  {q q': Transparency} {x l r: T} (H: q ≤ q')
+  : QSplit q x l r -> QSplit q' x l r
+  | ⟨Hxlr, Vlr⟩ => ⟨
+    (transparentLeSubalgebra _ H).le_sub (l + r) x Hxlr,
+    (transparentLeSubalgebra _ H).valid_sub _ _ Vlr⟩
+
+def ResourceAlgebra.QSplit.symm {T: Type u} [ResourceAlgebra T]
+  {q} {x l r: T}: QSplit q x l r -> QSplit q x r l
+  := @Split.symm T (ResourceAlgebra.transparentAlgebra T q) x l r
+
+def ResourceAlgebra.QSplit.assoc {T: Type u} [ResourceAlgebra T]
+  {q} {x123 x12 x1 x2 x3: T}
+  : QSplit q x123 x12 x3 -> QSplit q x12 x1 x2
+    -> QSplit q x123 x1 (x2 + x3) ∧ QSplit q (x2 + x3) x2 x3
+  := @Split.assoc T (ResourceAlgebra.transparentAlgebra T q) x123 x12 x1 x2 x3
 
 theorem ResourceAlgebra.qsplit_rel {T: Type u} [ResourceAlgebra T]
   {q} {x l r: T}: QSplit q x l r -> q.rel ∨ l = 0 ∨ r = 0
