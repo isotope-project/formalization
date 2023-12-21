@@ -15,7 +15,7 @@ structure Res (T: Type v) [ResourceAlgebraFamily T] where
 inductive Res.le {T: Type v} [ResourceAlgebraFamily T]
   : Res T -> Res T -> Prop
   | mk (A: Ty T) {v v': A.res} {q q'}
-    (Hv: (ResourceAlgebra.transparentAlgebra _ q').le v v')
+    (Hv: ResourceAlgebra.QWk q' v' v)
     (Hq: q ≤ q')
     : le ⟨A, v, q⟩ ⟨A, v', q'⟩
 
@@ -114,15 +114,35 @@ instance Res.instDrops {T} [ResourceAlgebraFamily T]: Drops (Res T) where
 instance Res.instWkns {T} [ResourceAlgebraFamily T]: Wkns (Res T)
   := PRes.instWkns
 
--- instance Res.instSplitWk [ResourceAlgebraFamily T]
---   : SplitWk (Res T) where
---   wkSplit
---     | ⟨qw, _, _⟩, Split.mk _ s ql qr => sorry
---   splitWkLeft s w := sorry
---   splitWkRight s w := sorry
+instance Res.instSplitWk {T} [ResourceAlgebraFamily T]
+  : SplitWk (Res T) where
+  wkSplit
+    | ⟨_, w, wq⟩, Split.mk _ s ql qr =>
+      Split.mk _ ((s.upcast wq).wk w) (le_trans ql wq) (le_trans qr wq)
+  splitWkLeft
+    | Split.mk _ s ql qr, w => by
+      cases w with
+      | mk _ w wq =>
+        exact Split.mk _ (s.wkLeft (w.upcast ql)) (le_trans wq ql) qr
+  splitWkRight
+    | Split.mk _ s ql qr, w => by
+      cases w with
+      | mk _ w wq =>
+        exact Split.mk _ (s.wkRight (w.upcast qr)) ql (le_trans wq qr)
+
+def Res.Split.wk {T} [ResourceAlgebraFamily T]
+  {v' v l r: Res T}: Wkns.Wk v' v -> Split v l r -> Split v' l r
+  := SplitWk.wkSplit
+
+def Res.Split.wkLeft {T} [ResourceAlgebraFamily T]
+  {v l l' r: Res T}: Split v l r -> Wkns.Wk l l' -> Split v l' r
+  | s => SplitWk.splitWkLeft s
+
+def Res.Split.wkRight {T} [ResourceAlgebraFamily T]
+  {v l r r': Res T}: Split v l r -> Wkns.Wk r r' -> Split v l r'
+  | s => SplitWk.splitWkRight s
 
 --TODO: Res.instSplitDropWk
-
 
 structure Var (N: Type u) (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
@@ -176,12 +196,14 @@ instance Var.instDrops {N} {T} [ResourceAlgebraFamily T]
 instance Var.instWk {N} {T} [ResourceAlgebraFamily T]
   : Wkns (Var N T) := PRes.instWkns
 
---TODO:
--- instance Var.instSplitWk {N} {T} [ResourceAlgebraFamily T]
---   : SplitWk (Var N T) where
---   wkSplit | ⟨Heq, Hr, Hq⟩, ⟨Hs, Hel, Her⟩ => sorry
---   splitWkLeft := sorry
---   splitWkRight := sorry
+instance Var.instSplitWk {N} {T} [ResourceAlgebraFamily T]
+  : SplitWk (Var N T) where
+  wkSplit | ⟨Heq, w⟩, ⟨s, Hel, Her⟩ =>
+            ⟨s.wk w, Eq.trans Hel Heq, Eq.trans Her Heq⟩
+  splitWkLeft | ⟨s, Hel, Her⟩, ⟨Heq, w⟩ =>
+                ⟨s.wkLeft w, Eq.trans Heq Hel, Her⟩
+  splitWkRight | ⟨s, Hel, Her⟩, ⟨Heq, w⟩ =>
+                ⟨s.wkRight w, Hel, Eq.trans Heq Her⟩
 
 --TODO: var.instSplitDropWk
 

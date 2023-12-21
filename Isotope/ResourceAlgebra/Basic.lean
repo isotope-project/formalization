@@ -490,18 +490,35 @@ def ResourceAlgebra.QWk {T: Type u} [ResourceAlgebra T]
   (q: Transparency) (x x': T): Prop
   := (ResourceAlgebra.transparentAlgebra T q).le x' x
 
-def ResourceAlgebra.QSplit.upcast {T: Type u} [ResourceAlgebra T]
+theorem ResourceAlgebra.QSplit.upcast {T: Type u} [ResourceAlgebra T]
   {q q': Transparency} {x l r: T} (H: q ≤ q')
   : QSplit q x l r -> QSplit q' x l r
   | ⟨Hxlr, Vlr⟩ => ⟨
     (transparentLeSubalgebra _ H).le_sub (l + r) x Hxlr,
     (transparentLeSubalgebra _ H).valid_sub _ _ Vlr⟩
 
-def ResourceAlgebra.QSplit.symm {T: Type u} [ResourceAlgebra T]
+theorem ResourceAlgebra.QWk.upcast {T: Type u} [ResourceAlgebra T]
+  {q q': Transparency} {v v': T} (H: q ≤ q')
+  : QWk q v v' -> QWk q' v v'
+  := (transparentLeSubalgebra _ H).le_sub _ _
+
+theorem ResourceAlgebra.QSplit.symm {T: Type u} [ResourceAlgebra T]
   {q} {x l r: T}: QSplit q x l r -> QSplit q x r l
   := @Split.symm T (ResourceAlgebra.transparentAlgebra T q) x l r
 
-def ResourceAlgebra.QSplit.assoc {T: Type u} [ResourceAlgebra T]
+theorem ResourceAlgebra.QSplit.wk {T: Type u} [ResourceAlgebra T]
+  {q} {x' x l r: T}:  QWk q x' x -> QSplit q x l r -> QSplit q x' l r
+  := (@ResourceAlgebra.instSplitWk (LinT q T) _).wkSplit
+
+theorem ResourceAlgebra.QSplit.wkLeft {T: Type u} [ResourceAlgebra T]
+  {q} {x l l' r: T}: QSplit q x l r -> QWk q l l' -> QSplit q x l' r
+  := (@ResourceAlgebra.instSplitWk (LinT q T) _).splitWkLeft
+
+theorem ResourceAlgebra.QSplit.wkRight {T: Type u} [ResourceAlgebra T]
+  {q} {x l r r': T}: QSplit q x l r -> QWk q r r' -> QSplit q x l r'
+  := (@ResourceAlgebra.instSplitWk (LinT q T) _).splitWkRight
+
+theorem ResourceAlgebra.QSplit.assoc {T: Type u} [ResourceAlgebra T]
   {q} {x123 x12 x1 x2 x3: T}
   : QSplit q x123 x12 x3 -> QSplit q x12 x1 x2
     -> QSplit q x123 x1 (x2 + x3) ∧ QSplit q (x2 + x3) x2 x3
