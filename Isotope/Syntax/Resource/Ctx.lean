@@ -12,29 +12,39 @@ structure Res (T: Type v) [ResourceAlgebraFamily T] where
   res: ty.res
   qnt: Transparency
 
-instance Res.instDrops {T} [ResourceAlgebraFamily T]: Drops (Res T) where
-  Drop v := ResourceAlgebra.QWk v.qnt v.res 0
+inductive Res.le {T: Type v} [ResourceAlgebraFamily T]
+  : Res T -> Res T -> Prop
+  | mk (A: Ty T) {v v': A.res} {q q'}
+    (Hv: (ResourceAlgebra.transparentAlgebra _ q').le v v')
+    (Hq: q ≤ q')
+    : le ⟨A, v, q⟩ ⟨A, v', q'⟩
 
---TODO: define Res.le inductively, and prove equal?
--- Why does kernel leave metavariables here?
+theorem Res.le.ty_eq {T: Type v} [ResourceAlgebraFamily T]
+  {v v': Res T}: v.le v' -> v.ty = v'.ty
+  | mk _ _ _ => rfl
 
 instance Res.instPartialOrder {T: Type v}
   [R: ResourceAlgebraFamily T]
   : PartialOrder (Res T) where
-  le l r := l.qnt ≤ r.qnt
-    ∧ ∃p: l.ty = r.ty, r.ty.resourceAlgebra.le (p ▸ l.res) r.res
-  le_refl l := ⟨le_refl _, rfl, l.ty.resourceAlgebra.le_refl _⟩
+  le := Res.le
+  le_refl _
+    := le.mk _ ((ResourceAlgebra.transparentAlgebra _ _).le_refl _) (le_refl _)
   le_trans
-    | ⟨tx, rx, qx⟩, ⟨_, ry, qy⟩, ⟨_, rz, qz⟩, ⟨Hq, rfl, Hxy⟩, ⟨Hq', rfl, Hyz⟩
-    => ⟨le_trans Hq Hq', rfl, tx.resourceAlgebra.le_trans _ _ _ Hxy Hyz⟩
-  le_antisymm
-    | ⟨tx, rx, qx⟩, ⟨ty, ry, qy⟩
-    => by
-      intro ⟨Hq, H, Hxy⟩ ⟨Hq', H', Hyx⟩; cases H
-      have H'' := le_antisymm Hxy Hyx
-      have Hq'' := le_antisymm Hq Hq'
-      simp only at *;
-      simp [H'', Hq'']
+    | ⟨_, ra, _qa⟩, ⟨_, rb, _qb⟩, ⟨_, rc, _qc⟩, le.mk _ h hq, le.mk _ h' hq'
+    => le.mk _
+      ((ResourceAlgebra.transparentAlgebra _ _).le_trans ra rb rc
+        ((ResourceAlgebra.transparentLeSubalgebra _ hq').le_sub _ _ h) h')
+      (le_trans hq hq')
+  le_antisymm x y Hxy Hyx := by
+    cases x; cases y; cases Hxy with
+    | mk _ v q => cases Hyx with
+      | mk _ v' q' =>
+        have Hq := le_antisymm q q';
+        cases Hq;
+        have Hr :=
+          (ResourceAlgebra.transparentAlgebra _ _).le_antisymm _ _ v v';
+        cases Hr;
+        rfl
 
 inductive Res.Split {T: Type v} [ResourceAlgebraFamily T]
   : Res T → Res T → Res T → Prop where
@@ -98,7 +108,18 @@ instance Res.instSplits [ResourceAlgebraFamily T]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
---TODO: Res.instSplitWk
+instance Res.instDrops {T} [ResourceAlgebraFamily T]: Drops (Res T) where
+  Drop v := ResourceAlgebra.QWk v.qnt v.res 0
+
+instance Res.instWkns {T} [ResourceAlgebraFamily T]: Wkns (Res T)
+  := PRes.instWkns
+
+-- instance Res.instSplitWk [ResourceAlgebraFamily T]
+--   : SplitWk (Res T) where
+--   wkSplit
+--     | ⟨qw, _, _⟩, Split.mk _ s ql qr => sorry
+--   splitWkLeft s w := sorry
+--   splitWkRight s w := sorry
 
 --TODO: Res.instSplitDropWk
 
