@@ -4,6 +4,8 @@ import Mathlib.Logic.Equiv.Defs
 import Mathlib.Order.Lattice
 import Aesop
 
+--TODO: factor our transparency to another file?
+
 inductive Ty (T: Type u)
 | base (X: T)
 | unit

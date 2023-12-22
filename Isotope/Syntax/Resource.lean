@@ -1,1 +1,1 @@
-import Isotope.Syntax.Resource.Ctx
+import Isotope.Syntax.Resource.Term

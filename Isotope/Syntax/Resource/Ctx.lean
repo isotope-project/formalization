@@ -389,6 +389,41 @@ instance Ctx.instDistWkSSplit {N T} [ResourceAlgebraFamily T]
   : DistWkSSplit (Ctx N T) where
   distWkSSplit := SSplit.dist
 
+def Ctx.var {N T} [ResourceAlgebraFamily T] (v: Var N T): Ctx N T := [v]
+
+def Ctx.HasVar {N T} [ResourceAlgebraFamily T] (Γ: Ctx N T) (v: Var N T)
+  := Γ.Wk (var v)
+
+def Ctx.HasVar.wk {N T} [ResourceAlgebraFamily T] {Γ Δ: Ctx N T} {v: Var N T}
+  (w: Γ.Wk Δ) (h: Δ.HasVar v): Γ.HasVar v
+  := w.trans h
+
+def Var.HasTy {N T} [ResourceAlgebraFamily T] (v: Var N T) (A: Comp T)
+  : Prop
+  := v.toRes ≥ A.toRes
+
+def Var.HasTy.upcast {N T} [ResourceAlgebraFamily T] {v: Var N T} {A B: Comp T}
+  (h: v.HasTy A) (h': A ≥ B): v.HasTy B
+  := le_trans h'.2 h
+
+structure Ctx.Var {N T} [ResourceAlgebraFamily T] (Γ: Ctx N T) (A: Comp T)
+  where
+  var: Var N T
+  has_var: Γ.HasVar var
+  has_ty: var.HasTy A
+
+def Ctx.Var.wk {N T} [ResourceAlgebraFamily T] {Γ Δ: Ctx N T} {A: Comp T}
+  (w: Γ.Wk Δ) (h: Δ.Var A): Γ.Var A where
+  var := h.var
+  has_var := h.has_var.wk w
+  has_ty := h.has_ty
+
+def Ctx.Var.upcast {N T} [ResourceAlgebraFamily T] {Γ: Ctx N T} {A B: Comp T}
+  (h: Γ.Var A) (h': A ≥ B): Γ.Var B where
+  var := h.var
+  has_var := h.has_var
+  has_ty := h.has_ty.upcast h'
+
 -- The Plan (TM):
 
 --TODO: in another file, instLang
