@@ -277,6 +277,11 @@ class SplitDropWk.{u, s, v}
   splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
     := λs dl dr => wkDrop (splitDropLeft s dl) dr
 
+class DropToSplit (A: Type u) [S: Splits A] [Drops A]
+  where
+  dropToSplit {a}: Drop a
+    -> (l r: A) ×' (_: Split a l r) ×' (_: Drop l) ×' (Drop r)
+
 class SSplitDropSWk.{u, s, v}
   (A: Type u) [S: SSplits.{u, s} A] [SWkns.{u, v} A]
   extends SWkDrop A

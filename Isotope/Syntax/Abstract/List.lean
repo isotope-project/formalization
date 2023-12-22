@@ -8,7 +8,7 @@ open Drops
 open WkDrop
 open SplitWk
 open BiasedDistWkSplit
-open SplitArr
+open DropToSplit
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
@@ -112,6 +112,10 @@ inductive Elementwise.Wk.{u, w} {A: Type u} [W: Wkns.{u, w} A]
   | nil: Wk [] []
   | cons {a b: A} {Γ Δ: Elementwise A}
     : W.Wk a b -> Wk Γ Δ -> Wk (a :: Γ) (b :: Δ)
+
+def Elementwise.Wk.scons {A} [Wkns A]
+  {Γ Δ: Elementwise A}: Wk Γ Δ -> (a: A) -> Wk (a::Γ) (a::Δ)
+  | w, a => cons (wkId a) w
 
 def Elementwise.Wk.id {A} [Wkns A]
   : (Γ: Elementwise A) -> Wk Γ Γ
@@ -344,6 +348,10 @@ inductive DropOrWk.Wk.{u, w, d} {A: Type u}
   | cons {a b}: W.Wk a b -> Wk Γ Δ -> Wk (a :: Γ) (b :: Δ)
   | discard {a}: D.Drop a -> Wk Γ Δ -> Wk (a :: Γ) Δ
 
+def DropOrWk.Wk.scons {A} [Wkns A] [Drops A]
+  {Γ Δ: DropOrWk A}: Wk Γ Δ -> (a: A) -> Wk (a::Γ) (a::Δ)
+  | w, a => cons (wkId a) w
+
 def DropOrWk.Wk.id {A} [Wkns.{u, w} A] [Drops.{u, d} A]
   : (Γ: DropOrWk A) -> DropOrWk.Wk Γ Γ
   | [] => nil
@@ -550,6 +558,32 @@ instance DropOrWk.instSSplits {A: Type u}
   ssplitToSplit := SSplit.toSplit
   ssplitSymm := SSplit.symm
   ssplitAssoc := SSplit.assoc
+
+def DropOrWk.SSplit.dist {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  [DropToSplit A]
+  {Γ' Γ Δ Ξ: DropOrWk A}
+  : Wk Γ' Γ -> SSplit Γ Δ Ξ ->
+      (Δ' Ξ': DropOrWk A)
+      ×' (_: SSplit Γ' Δ' Ξ')
+      ×' (_: Wk Δ' Δ)
+      ×' Wk Ξ' Ξ
+  | Wk.nil, SSplit.nil => ⟨_, _, SSplit.nil, Wk.nil, Wk.nil⟩
+  | Wk.cons wa w, SSplit.cons sa s =>
+      let ⟨_, _, s, wl, wr⟩ := dist w s
+      ⟨_, _, s.cons (wkSplit wa sa), wl.scons _, wr.scons _⟩
+  | Wk.discard wa w, s =>
+      let ⟨_, _, s, wl, wr⟩ := dist w s
+      let ⟨_, _, sa, dl, dr⟩ := dropToSplit wa
+      ⟨_, _, s.cons sa, wl.discard dl, wr.discard dr⟩
+
+instance DropOrWk.instDistWkSSplit {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  [DropToSplit A]
+  : DistWkSSplit (DropOrWk A) where
+  distWkSSplit := DropOrWk.SSplit.dist
 
 --TODO: instDistWkSSplit
 
