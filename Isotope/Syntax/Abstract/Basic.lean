@@ -253,19 +253,25 @@ instance SWkDrop.instArrDrop {A}
   : ArrDrop A (SWks.quiver A) where
   arrDrop := swkDrop
 
-class SplitDropArr.{u, s, v, d}
-  (A: Type u) (S: Splits.{u, s} A) (Q: Quiver.{v} A)
-  [Drops.{u, d} A] [ArrDrop.{u, v, d} A Q]
+-- class SplitDropArr.{u, s, v, d}
+--   (A: Type u) (S: Splits.{u, s} A) (Q: Quiver.{v} A)
+--   [Drops.{u, d} A] [ArrDrop.{u, v, d} A Q]
+--   where
+--   splitDropLeft {a b c: A}: Split a b c -> Drop b -> Q.Hom a c
+--   splitDropRight {a b c: A}: Split a b c -> Drop c -> Q.Hom a b
+--     := λs d => splitDropLeft (splitSymm s) d
+--   splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
+--     := λs dl dr => arrDrop (splitDropLeft s dl) dr
+
+class SplitDropWk.{u, s, v}
+  (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, v} A]
+  extends WkDrop A --, SplitDropArr.{u, s, v, d} A S (Wks.quiver A)
   where
-  splitDropLeft {a b c: A}: Split a b c -> Drop b -> Q.Hom a c
-  splitDropRight {a b c: A}: Split a b c -> Drop c -> Q.Hom a b
+  splitDropLeft {a b c: A}: Split a b c -> Drop b -> Wk a c
+  splitDropRight {a b c: A}: Split a b c -> Drop c -> Wk a b
     := λs d => splitDropLeft (splitSymm s) d
   splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
-    := λs dl dr => arrDrop (splitDropLeft s dl) dr
-
-class SplitDropWk.{u, s, v, d}
-  (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, v} A]
-  extends WkDrop A, SplitDropArr.{u, s, v, d} A S (Wks.quiver A)
+    := λs dl dr => wkDrop (splitDropLeft s dl) dr
 
 class DistArr.{u, s, w}
   (A: Type u)

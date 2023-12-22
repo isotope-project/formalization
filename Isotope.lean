@@ -17,3 +17,4 @@ import Isotope.ResourceAlgebra
 import Isotope.Syntax.Abstract
 import Isotope.Syntax.Untyped
 import Isotope.Syntax.SimpleNamed
+import Isotope.Syntax.Resource

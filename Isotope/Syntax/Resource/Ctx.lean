@@ -175,7 +175,7 @@ instance Var.instPartialOrder {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
 
 structure Var.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   (v l r: Var N T): Prop where
-  res: v.toRes.Split l.toRes r.toRes
+  res: Splits.Split v.toRes l.toRes r.toRes
   left_name: l.name = v.name
   right_name: r.name = v.name
 
@@ -208,7 +208,7 @@ instance Var.instDrops {N} {T} [ResourceAlgebraFamily T]
   Drop v := Drops.Drop v.toRes
 
 instance Var.instWk {N} {T} [ResourceAlgebraFamily T]
-  : Wkns (Var N T) := PRes.instWkns
+  : Wkns (Var N T) := PRes.instWkns --TODO: give this a nicer syntactic equality
 
 instance Var.instSplitWk {N} {T} [ResourceAlgebraFamily T]
   : SplitWk (Var N T) where
@@ -219,7 +219,10 @@ instance Var.instSplitWk {N} {T} [ResourceAlgebraFamily T]
   splitWkRight | ⟨s, Hel, Her⟩, ⟨Heq, w⟩ =>
                 ⟨s.wkRight w, Hel, Eq.trans Heq Her⟩
 
---TODO: var.instSplitDropWk
+instance Var.instSplitDropWk {N} {T} [ResourceAlgebraFamily T]
+  : SplitDropWk (Var N T) where
+  wkDrop w d := @WkDrop.wkDrop (Res T) _ _ _ _ w.2 d
+  splitDropLeft s d := ⟨s.right_name, SplitDropWk.splitDropLeft s.res d⟩
 
 structure Comp (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
