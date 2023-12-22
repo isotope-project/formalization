@@ -274,9 +274,27 @@ def Ctx.Wk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   : Ctx N T -> Ctx N T -> Sort _
   := @DropOrWk.Wk (Var N T) _ _
 
---TODO: instWkns
+def Ctx.Wk.id {N T} [ResourceAlgebraFamily T]
+  : (Γ: Ctx N T) -> Ctx.Wk Γ Γ
+  := DropOrWk.Wk.id
 
---TODO: instDrops
+def Ctx.Wk.trans {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: Ctx.Wk Γ Δ -> Ctx.Wk Δ Ξ -> Ctx.Wk Γ Ξ
+  := DropOrWk.Wk.trans
+
+instance Ctx.instWkns {N T} [ResourceAlgebraFamily T]
+  : Wkns (Ctx N T) where
+  Wk := Wk
+  wkTrans := Wk.trans
+  wkId := Wk.id
+
+def Ctx.Drop {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T -> Sort _
+  := @DropOrWk.Drop (Var N T) _
+
+instance Ctx.instDrops {N T} [ResourceAlgebraFamily T]
+  : Drops (Ctx N T) where
+  Drop := Drop
 
 def Ctx.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Split Γ Ξ Δ
@@ -294,15 +312,48 @@ instance Ctx.instSplit {N} {T} [ResourceAlgebraFamily T]
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
---TODO: instSplitWk
+def Ctx.Split.wk {N T} [ResourceAlgebraFamily T]
+  {Γ' Γ Δ Ξ: Ctx N T}: Wk Γ' Γ -> Split Γ Δ Ξ -> Split Γ' Δ Ξ
+  := DropOrWk.Split.wk
+
+def Ctx.Split.wkLeft {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Δ' Ξ: Ctx N T}: Split Γ Δ Ξ -> Wkns.Wk Δ Δ' -> Split Γ Δ' Ξ
+  := DropOrWk.Split.wkLeft
+
+def Ctx.Split.wkRight {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ Ξ': Ctx N T}: Split Γ Δ Ξ -> Wkns.Wk Ξ Ξ' -> Split Γ Δ Ξ'
+  := DropOrWk.Split.wkRight
+
+instance Ctx.instSplitWk {N T} [ResourceAlgebraFamily T]
+  : SplitWk (Ctx N T) where
+  wkSplit := Split.wk
+  splitWkLeft := Split.wkLeft
+  splitWkRight := Split.wkRight
 
 --TODO: instSplitDropWk
 
 def Ctx.SWk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   : Ctx N T → Ctx N T → Type _
-  := @Elementwise.Wk (Var N T) _
+  := @DropOrWk.SWk (Var N T) _
 
---TODO: instSWkns
+def Ctx.SWk.toWk {N T} [ResourceAlgebraFamily T]
+  {Γ Δ: Ctx N T}: Ctx.SWk Γ Δ -> Ctx.Wk Γ Δ
+  := DropOrWk.SWk.toWk
+
+def Ctx.SWk.id {N T} [ResourceAlgebraFamily T]
+  : (Γ: Ctx N T) -> Ctx.SWk Γ Γ
+  := DropOrWk.SWk.id
+
+def Ctx.SWk.trans {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: Ctx.SWk Γ Δ -> Ctx.SWk Δ Ξ -> Ctx.SWk Γ Ξ
+  := DropOrWk.SWk.trans
+
+instance Ctx.instSwkns {N T} [ResourceAlgebraFamily T]
+  : SWkns (Ctx N T) where
+  SWk := SWk
+  swkToWk := SWk.toWk
+  swkTrans := SWk.trans
+  swkId := SWk.id
 
 def Ctx.SSplit {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   : Ctx N T → Ctx N T → Ctx N T → Type _
@@ -329,7 +380,14 @@ instance Ctx.instSSplit {N} {T} [ResourceAlgebraFamily T]
   ssplitSymm := SSplit.symm
   ssplitAssoc := SSplit.assoc
 
---TODO: instDistWkSSplit ==> DistArr ==> weakening by substitution
+def Ctx.SSplit.dist {N T} [ResourceAlgebraFamily T]
+  {Γ' Γ Δ Ξ}: Wk Γ' Γ -> SSplit Γ Δ Ξ
+    -> (Δ' Ξ': Ctx N T) ×' (_: SSplit Γ' Δ' Ξ') ×' (_: Wk Δ' Δ) ×' (Wk Ξ' Ξ)
+  := DropOrWk.SSplit.dist
+
+instance Ctx.instDistWkSSplit {N T} [ResourceAlgebraFamily T]
+  : DistWkSSplit (Ctx N T) where
+  distWkSSplit := SSplit.dist
 
 -- The Plan (TM):
 
