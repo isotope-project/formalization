@@ -68,6 +68,7 @@ instance Var.instSplitWk {N: Type u} {T: Type v} [HasLin T]
 
 def Ctx (N: Type u) (T: Type v) := List (Var N T)
 
+--TODO: this is actually SSplits
 instance Ctx.instSplits {N: Type u} {T: Type v} [HasLin T]
   : Splits (Ctx N T)
   := SplitOrWk.instSplits

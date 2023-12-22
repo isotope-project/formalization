@@ -500,6 +500,13 @@ def DropOrWk.SSplit.toSplit {A: Type u}
   | SSplit.nil => Split.nil
   | SSplit.cons s sl => Split.both s (toSplit sl)
 
+def Elementwise.Split.toDropOrWk {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  {Γ Δ Ξ: Elementwise A}
+  : Split Γ Δ Ξ -> DropOrWk.Split Γ Δ Ξ
+  := DropOrWk.SSplit.toSplit
+
 instance DropOrWk.instSSplits {A: Type u}
   [Splits.{u, v} A] [Wkns.{u, w} A]
   [SplitWk.{u, v, w} A] [SplitDropWk A]
@@ -516,3 +523,45 @@ instance DropOrWk.instSSplits {A: Type u}
 --TODO: instSSplitDropSWk
 
 --TODO: should SSplitDropWk be a typeclass?
+
+def DropOrWk.instElementwiseSSplits {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  : SSplits (DropOrWk A) where
+  SSplit := Elementwise.Split
+  ssplitToSplit := Elementwise.Split.toDropOrWk
+  ssplitSymm := Elementwise.Split.symm
+  ssplitAssoc := Elementwise.Split.assoc
+
+--TODO: export that the above is equal to instSSplits?
+
+--TODO: instSWk
+
+--TODO: instDistWkSSplit
+
+--TODO: instSSplitDropSWk
+
+def SplitOrWk.Split.toDropOrWk {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  {Γ Δ Ξ: SplitOrWk A}
+  : Split Γ Δ Ξ -> DropOrWk.Split Γ Δ Ξ
+  | nil => DropOrWk.Split.nil
+  | left w s => DropOrWk.Split.left w (toDropOrWk s)
+  | right w s => DropOrWk.Split.right w (toDropOrWk s)
+  | both s ss => DropOrWk.Split.both s (toDropOrWk ss)
+
+def DropOrWk.instSplitOrWkSSplits {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  : SSplits (DropOrWk A) where
+  SSplit := SplitOrWk.Split
+  ssplitToSplit := SplitOrWk.Split.toDropOrWk
+  ssplitSymm := SplitOrWk.Split.symm
+  ssplitAssoc := SplitOrWk.Split.assoc
+
+--TODO: instSWk
+
+--TODO: instDistWkSSplit
+
+--TODO: instSSplitDropSWk

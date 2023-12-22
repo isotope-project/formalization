@@ -5,8 +5,8 @@ open CategoryTheory
 
 namespace Abstract
 
-class Lang.{u, v, ss, sj, sv, sb, si, sc} (C: Type u)
-  extends SSplits.{u, ss} C
+class Lang.{u, v, s, ss, sj, sv, sb, si, sc} (C: Type u)
+  extends SSplits.{u, s, ss} C
   where
   Ty: Type v
   pair: Joins.{v, sj} Ty
@@ -15,9 +15,9 @@ class Lang.{u, v, ss, sj, sv, sb, si, sc} (C: Type u)
   var: C -> Ty -> Sort sv
   bind: Ty -> C -> C -> Sort sb
 
-inductive Term.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
-  [L: Lang.{u, v, ss, sj, sv, sb, si, sc} C]
-  : C -> L.Ty -> Type (max u v ss sj sv sb si sc)
+inductive Term.{u, v, s, ss, sj, sv, sb, si, sc} {C: Type u}
+  [L: Lang.{u, v, s, ss, sj, sv, sb, si, sc} C]
+  : C -> L.Ty -> Type (max u v s ss sj sv sb si sc)
   where
   | var {Γ X}: L.var Γ X -> Term Γ X
   | op {Γ A B}: L.inst.Hom A B -> Term Γ A -> Term Γ B
