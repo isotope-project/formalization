@@ -242,26 +242,6 @@ instance Comp.instPartialOrder {T: Type v} [ResourceAlgebraFamily T]
 
 def Ctx (N: Type u) (T: Type v) [ResourceAlgebraFamily T] := List (Var N T)
 
-def Ctx.SSplit {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
-  : Ctx N T → Ctx N T → Ctx N T → Type _
-  := @Elementwise.Split (Var N T) _
-
-def Ctx.SSplit.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
-  {Γ Δ Ξ: Ctx N T}: SSplit Γ Δ Ξ -> SSplit Γ Ξ Δ
-  := Elementwise.Split.symm
-
-def Ctx.SSplit.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
-  {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
-  : SSplit Γ123 Γ12 Γ3 -> SSplit Γ12 Γ1 Γ2 ->
-    (Γ23: Ctx N T) ×' (_: SSplit Γ123 Γ1 Γ23) ×' SSplit Γ23 Γ2 Γ3
-  := Elementwise.Split.assoc
-
---TODO: instSSSplit
-
-def Ctx.SWk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
-  : Ctx N T → Ctx N T → Type _
-  := @Elementwise.Wk (Var N T) _
-
 def Ctx.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   : Ctx N T → Ctx N T → Ctx N T → Sort _
   := @DropOrWk.Split (Var N T) _ _ _
@@ -269,6 +249,10 @@ def Ctx.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
 def Ctx.Wk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   : Ctx N T -> Ctx N T -> Sort _
   := @DropOrWk.Wk (Var N T) _ _
+
+--TODO: instWkns
+
+--TODO: instDrops
 
 def Ctx.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
   {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Split Γ Ξ Δ
@@ -280,8 +264,59 @@ def Ctx.Split.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
     (Γ23: Ctx N T) ×' (_: Split Γ123 Γ1 Γ23) ×' Split Γ23 Γ2 Γ3
   := DropOrWk.Split.assoc
 
---TODO: instSplit
-
---TODO: instDistSSplit or smt...
+instance Ctx.instSplit {N} {T} [ResourceAlgebraFamily T]
+  : Splits (Ctx N T) where
+  Split := Split
+  splitSymm := Split.symm
+  splitAssoc := Split.assoc
 
 --TODO: instSplitWk
+
+--TODO: instSplitDropWk
+
+def Ctx.SWk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T → Ctx N T → Type _
+  := @Elementwise.Wk (Var N T) _
+
+--TODO: instSWkns
+
+def Ctx.SSplit {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T → Ctx N T → Ctx N T → Type _
+  := @DropOrWk.SSplit (Var N T) _
+
+def Ctx.SSplit.toSplit {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: SSplit Γ Δ Ξ -> Split Γ Δ Ξ
+  := DropOrWk.SSplit.toSplit
+
+def Ctx.SSplit.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: SSplit Γ Δ Ξ -> SSplit Γ Ξ Δ
+  := DropOrWk.SSplit.symm
+
+def Ctx.SSplit.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
+  : SSplit Γ123 Γ12 Γ3 -> SSplit Γ12 Γ1 Γ2 ->
+    (Γ23: Ctx N T) ×' (_: SSplit Γ123 Γ1 Γ23) ×' SSplit Γ23 Γ2 Γ3
+  := DropOrWk.SSplit.assoc
+
+instance Ctx.instSSplit {N} {T} [ResourceAlgebraFamily T]
+  : SSplits (Ctx N T) where
+  SSplit := SSplit
+  ssplitToSplit := SSplit.toSplit
+  ssplitSymm := SSplit.symm
+  ssplitAssoc := SSplit.assoc
+
+--TODO: instDistWkSSplit ==> DistArr ==> weakening by substitution
+
+-- The Plan (TM):
+
+--TODO: in another file, instLang
+
+--TODO: then go clean up substitution to be SubstLike, likewise for SubstCat
+
+--TODO: think about coherence conditions for a bit, but not too long
+
+--TODO: write CFGs _explicitly_, along with LCtx _explicitly_
+
+--TODO: _then_ abstract, prove abstract theorems
+
+--TODO: _then_ instantiate theorems
