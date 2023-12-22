@@ -186,13 +186,12 @@ instance SWks.instPrecategory {A} [W: SWkns A]
 
 class WkCat.{u, v} (A: Type u) extends Wkns.{u, v} A, Category (Wks A) where
 
---TODO: SSplit ==> Split
 --TODO: Split ==> SSplit;(Wk × Wk) (Or Wk;SSplit;Wk × Wk?)
 --TODO: Wk;SSplit ==> Split
-class SSplits.{u, v} (A: Type u) extends Splits.{u, v} A
-  : Type (max u v) where
-  SSplit: A -> A -> A -> Sort v
-  ssplitToSplit {a b c: A}: Split a b c -> SSplit a b c
+class SSplits.{u, s, ss} (A: Type u) extends Splits.{u, s} A
+  : Type (max u s ss) where
+  SSplit: A -> A -> A -> Sort ss
+  ssplitToSplit {a b c: A}: SSplit a b c -> Split a b c
   ssplitSymm {a b c: A}: SSplit a b c -> SSplit a c b
   ssplitAssoc {a123 a12 a1 a2 a3: A}:
     SSplit a123 a12 a3 -> SSplit a12 a1 a2 ->
@@ -241,10 +240,15 @@ instance WkDrop.instArrDrop {A}
   : ArrDrop A (Wks.quiver A) where
   arrDrop := wkDrop
 
+--TODO: should this even be a separate class?
 class SWkDrop.{u, w, d} (A: Type u) [SWkns.{u, w} A]
   extends Drops.{u, d} A
   where
   swkDrop {a b: A}: SWk a b -> Drop b -> Drop a
+
+instance WkDrop.instSWkDrop {A} [SWkns A] [WkDrop A]: SWkDrop A
+  where
+  swkDrop w := wkDrop (swkToWk w)
 
 open SWkDrop
 
@@ -265,13 +269,23 @@ instance SWkDrop.instArrDrop {A}
 
 class SplitDropWk.{u, s, v}
   (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, v} A]
-  extends WkDrop A --, SplitDropArr.{u, s, v, d} A S (Wks.quiver A)
+  extends WkDrop A
   where
   splitDropLeft {a b c: A}: Split a b c -> Drop b -> Wk a c
   splitDropRight {a b c: A}: Split a b c -> Drop c -> Wk a b
     := λs d => splitDropLeft (splitSymm s) d
   splitDrop {a b c: A}: Split a b c -> Drop b -> Drop c -> Drop a
     := λs dl dr => wkDrop (splitDropLeft s dl) dr
+
+class SSplitDropSWk.{u, s, v}
+  (A: Type u) [S: SSplits.{u, s} A] [SWkns.{u, v} A]
+  extends SWkDrop A
+  where
+  ssplitDropLeft {a b c: A}: SSplit a b c -> Drop b -> SWk a c
+  ssplitDropRight {a b c: A}: SSplit a b c -> Drop c -> SWk a b
+    := λs d => ssplitDropLeft (ssplitSymm s) d
+  ssplitDrop {a b c: A}: SSplit a b c -> Drop b -> Drop c -> Drop a
+    := λs dl dr => swkDrop (ssplitDropLeft s dl) dr
 
 class DistArr.{u, s, w}
   (A: Type u)
@@ -281,16 +295,26 @@ class DistArr.{u, s, w}
   distArr {a' a b c: A}: H.Hom a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: H.Hom b' b) ×' (H.Hom c' c)
 
-class DistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [W: Wkns.{u, w} A]
+class DistWkSplit.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [W: Wkns.{u, w} A]
   where
-  distWk {a' a b c: A}: Wk a' a -> Split a b c
+  distWkSplit {a' a b c: A}: Wk a' a -> Split a b c
     -> (b' c': A) ×' (_: Split a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
 
-open DistWk
+--TODO: DistSWkSplit
 
-instance DistWk.instDistArr {A} [S: Splits A] [Wkns A] [DistWk A]
+class DistWkSSplit.{u, s, w} (A: Type u)
+  [S: SSplits.{u, s} A] [W: Wkns.{u, w} A]
+  where
+  distWkSSplit {a' a b c: A}: Wk a' a -> SSplit a b c
+    -> (b' c': A) ×' (_: SSplit a' b' c') ×' (_: Wk b' b) ×' (Wk c' c)
+
+--TODO: DistSWkSSplit
+
+open DistWkSplit
+
+instance DistWkSplit.instDistArr {A} [S: Splits A] [Wkns A] [DistWkSplit A]
   : DistArr A S (Wks.quiver A) where
-  distArr := distWk
+  distArr := distWkSplit
 
 class BiasedDistArr.{u, s, w} (A: Type u)
   (S: Splits.{u, s} A) (H: Quiver.{w} A)
@@ -312,37 +336,39 @@ instance BiasedDistArr.instDistArr {A: Type u} {S: Splits.{u, s} A}
       let ⟨c', s, w⟩ := distArrLeft w s;
       ⟨c', _, s, w, R.id _⟩
 
-class BiasedDistWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
-  extends DistWk A
+class BiasedDistWkSplit.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
+  extends DistWkSplit A
   where
-  distWkLeft {a' a b c: A}: Wk a' a -> Split a b c
+  wkSplitLeft {a' a b c: A}: Wk a' a -> Split a b c
     -> (b': A) ×' (_: Split a' b' c) ×' (Wk b' b)
-  distWkRight {a' a b c: A}: Wk a' a -> Split a b c
+  wkSplitRight {a' a b c: A}: Wk a' a -> Split a b c
     -> (c': A) ×' (_: Split a' b c') ×' (Wk c' c)
     := λw s =>
-      let ⟨c', s, W⟩ := distWkLeft w (splitSymm s);
+      let ⟨c', s, W⟩ := wkSplitLeft w (splitSymm s);
       ⟨c', splitSymm s, W⟩
-  distWk w s :=
-      let ⟨c', s, w⟩ := distWkLeft w s;
+  distWkSplit w s :=
+      let ⟨c', s, w⟩ := wkSplitLeft w s;
       ⟨c', _, s, w, wkId _⟩
 
-open BiasedDistWk
+--TODO: BiasedDistSWkSSplit
 
-instance BiasedDistWk.instDistArr {A: Type u}
+open BiasedDistWkSplit
+
+instance BiasedDistWkSplit.instDistArr {A: Type u}
   [S: Splits.{u, s} A] [Wkns.{u, w} A]
-  [BiasedDistWk A]
+  [BiasedDistWkSplit A]
   : DistArr A S (Wks.quiver A) where
-    distArr := distWk
+    distArr := distWkSplit
 
-instance BiasedDistWk.instBiasedDistArr {A: Type u}
+instance BiasedDistWkSplit.instBiasedDistArr {A: Type u}
   [S: Splits.{u, s} A] [Wkns.{u, w} A]
-  [BiasedDistWk A]
+  [BiasedDistWkSplit A]
   : BiasedDistArr A S (Wks.quiver A) where
-    distArrLeft := distWkLeft
-    distArrRight := distWkRight
+    distArrLeft := wkSplitLeft
+    distArrRight := wkSplitRight
 
-instance instBiasedDistWkUnit: BiasedDistWk Unit where
-  distWkLeft _ _ := ⟨(), (), ()⟩
+instance instBiasedDistWkUnit: BiasedDistWkSplit Unit where
+  wkSplitLeft _ _ := ⟨(), (), ()⟩
 
 class SplitArr.{u, s, w}
   (A: Type u)
@@ -359,7 +385,7 @@ class SplitArr.{u, s, w}
     := λs wl wr => splitArrRight (splitArrLeft s wl) wr
 
 class SplitWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
-  extends BiasedDistWk.{u, s, w} A
+  extends BiasedDistWkSplit.{u, s, w} A
   where
   wkSplit {a' a b c: A}: Wk a' a -> Split a b c -> Split a' b c
   splitWkLeft {a b b' c: A}: Split a b c -> Wk b b' -> Split a b' c
@@ -367,9 +393,11 @@ class SplitWk.{u, s, w} (A: Type u) [S: Splits.{u, s} A] [Wkns.{u, w} A]
     := λs w => splitSymm (splitWkLeft (splitSymm s) w)
   splitWk {a b b' c c': A} : Split a b c -> Wk b b' -> Wk c c' -> Split a b' c'
     := λs wl wr => splitWkRight (splitWkLeft s wl) wr
-  distWkLeft w s := ⟨_, wkSplit w s, wkId _⟩
-  distWkRight w s := ⟨_, wkSplit w s, wkId _⟩
-  distWk w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
+  wkSplitLeft w s := ⟨_, wkSplit w s, wkId _⟩
+  wkSplitRight w s := ⟨_, wkSplit w s, wkId _⟩
+  distWkSplit w s := ⟨_, _, wkSplit w s, wkId _, wkId _⟩
+
+--TODO: SSplitSWk
 
 open SplitWk
 

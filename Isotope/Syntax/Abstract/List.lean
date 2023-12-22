@@ -7,7 +7,7 @@ open Wkns
 open Drops
 open WkDrop
 open SplitWk
-open BiasedDistWk
+open BiasedDistWkSplit
 open SplitArr
 
 inductive List.Partitions {A: Type u}
@@ -259,7 +259,7 @@ def SplitOrWk.Split.assoc {A}
     ⟨_::Γ23, right w s, left w' s'⟩
   | left w s, both sa s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
-    let ⟨_, sa, w⟩ := distWkRight w sa
+    let ⟨_, sa, w⟩ := wkSplitRight w sa
     ⟨_::Γ23, both sa s, left w s'⟩
   | right w s, s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
@@ -323,6 +323,7 @@ instance SplitOrWk.instSplitWk {A: Type u}
 
 def DropOrWk (A: Type u) := List A
 
+--TODO: define Drop Γ to be Wk Γ []?
 inductive DropOrWk.Drop.{u, w, d} {A: Type u}
   [D: Drops.{u, d} A]
   : DropOrWk A -> Type (max u w d)
@@ -420,7 +421,7 @@ def DropOrWk.Split.assoc {A}
     ⟨_::Γ23, right w s, left w' s'⟩
   | left w s, both sa s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
-    let ⟨_, sa, w⟩ := distWkRight w sa
+    let ⟨_, sa, w⟩ := wkSplitRight w sa
     ⟨_::Γ23, both sa s, left w s'⟩
   | left w s, discard d s' =>
     let ⟨Γ23, s, s'⟩ := assoc s s'
@@ -453,10 +454,65 @@ instance DropOrWk.instSplits {A: Type u}
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
---TODO: weaken + drop
+--TODO: instSplitWk
 
---TODO: weaken w/ discard
+--TODO: instSplitDropWk
 
---TODO: split w/ discard
+def DropOrWk.SSplit.{u, v} {A: Type u}
+  [Splits.{u, v} A]
+  : DropOrWk A -> DropOrWk A -> DropOrWk A -> Sort (max (u+1) v)
+  := Elementwise.Split
 
---TODO: merge related inductives?
+@[match_pattern]
+def DropOrWk.SSplit.nil {A: Type u}
+  [Splits.{u, v} A]
+  : @DropOrWk.SSplit A _ [] [] []
+  := Elementwise.Split.nil
+
+@[match_pattern]
+def DropOrWk.SSplit.cons {A: Type u}
+  [Splits.{u, v} A]
+  {a b c: A} {Γ Δ Ξ: DropOrWk A}
+  : Splits.Split a b c
+    -> SSplit Γ Δ Ξ
+    -> SSplit (a::Γ) (b::Δ) (c::Ξ)
+  := Elementwise.Split.cons
+
+def DropOrWk.SSplit.symm {A: Type u}
+  [Splits.{u, v} A]
+  {Γ Δ Ξ: DropOrWk A}: SSplit Γ Δ Ξ -> SSplit Γ Ξ Δ
+  := Elementwise.Split.symm
+
+def DropOrWk.SSplit.assoc {A: Type u}
+  [Splits.{u, v} A]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: DropOrWk A}
+  : SSplit Γ123 Γ12 Γ3 -> SSplit Γ12 Γ1 Γ2 ->
+      (Γ23: DropOrWk A)
+      ×' (_: SSplit Γ123 Γ1 Γ23)
+      ×' (SSplit Γ23 Γ2 Γ3)
+  := Elementwise.Split.assoc
+
+def DropOrWk.SSplit.toSplit {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  {Γ Δ Ξ: DropOrWk A}
+  : SSplit Γ Δ Ξ -> Split Γ Δ Ξ
+  | SSplit.nil => Split.nil
+  | SSplit.cons s sl => Split.both s (toSplit sl)
+
+instance DropOrWk.instSSplits {A: Type u}
+  [Splits.{u, v} A] [Wkns.{u, w} A]
+  [SplitWk.{u, v, w} A] [SplitDropWk A]
+  : SSplits (DropOrWk A) where
+  SSplit := SSplit
+  ssplitToSplit := SSplit.toSplit
+  ssplitSymm := SSplit.symm
+  ssplitAssoc := SSplit.assoc
+
+--TODO: instSWk
+
+--TODO: instDistWkSSplit
+
+--TODO: instSSplitDropSWk
+
+--TODO: should SSplitDropWk be a typeclass?
