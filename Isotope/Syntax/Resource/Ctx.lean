@@ -112,6 +112,11 @@ instance Res.instSplits [ResourceAlgebraFamily T]
 instance Res.instDrops {T} [ResourceAlgebraFamily T]: Drops (Res T) where
   Drop v := ResourceAlgebra.QWk v.qnt v.res 0
 
+def Res.toZero {T} [ResourceAlgebraFamily T] (r: Res T): Res T where
+  ty := r.ty
+  res := 0
+  qnt := r.qnt
+
 instance Res.instWkns {T} [ResourceAlgebraFamily T]: Wkns (Res T)
   := PRes.instWkns
 
@@ -157,6 +162,18 @@ instance Res.instSplitDropWk {T} [ResourceAlgebraFamily T]
       => ⟨_, (s.wkLeft (Or.inl ⟨Transparency.le.aff ql a, dq⟩)).dropLeft, qr⟩
     | ⟨_, s, _, qr⟩, Or.inr d
       => by simp only [] at d; exact ⟨_, (d.symm ▸ s).dropLeft, qr⟩
+
+instance Res.instDropToSplit {T} [ResourceAlgebraFamily T]
+  : DropToSplit (Res T) where
+  dropToSplit := λ {a} d => match a with
+  | ⟨A, ra, qa⟩ => ⟨
+    ⟨A, 0, qa⟩,
+    ⟨A, 0, qa⟩,
+    ⟨A, ⟨by rw [zero_add]; exact d, Or.inr (Or.inr rfl)⟩,
+      le_refl _,
+      le_refl _⟩,
+    ResourceAlgebra.QWk.id _,
+    ResourceAlgebra.QWk.id _⟩
 
 structure Var (N: Type u) (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
@@ -206,6 +223,13 @@ instance Var.instSplits {N} {T} [ResourceAlgebraFamily T]
 instance Var.instDrops {N} {T} [ResourceAlgebraFamily T]
   : Drops (Var N T) where
   Drop v := Drops.Drop v.toRes
+
+instance Var.instDropToSplit {N} {T} [ResourceAlgebraFamily T]
+  : DropToSplit (Var N T) where
+  dropToSplit
+  | d =>
+    let ⟨l, r, s, dl, dr⟩ := Res.instDropToSplit.dropToSplit d
+    ⟨⟨l, _⟩, ⟨r, _⟩, ⟨s, rfl, rfl⟩, dl, dr⟩
 
 instance Var.instWk {N} {T} [ResourceAlgebraFamily T]
   : Wkns (Var N T) := PRes.instWkns --TODO: give this a nicer syntactic equality

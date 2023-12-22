@@ -502,6 +502,11 @@ theorem ResourceAlgebra.QWk.upcast {T: Type u} [ResourceAlgebra T]
   : QWk q v v' -> QWk q' v v'
   := (transparentLeSubalgebra _ H).le_sub _ _
 
+theorem ResourceAlgebra.QWk.id {T: Type u} [ResourceAlgebra T]
+  {q: Transparency} (a: T)
+  : QWk q a a
+  := (ResourceAlgebra.transparentAlgebra T q).le_refl a
+
 theorem ResourceAlgebra.QWk.trans {T: Type u} [ResourceAlgebra T]
   {q: Transparency} {a b c: T}
   (Hab: QWk q a b) (Hbc: QWk q b c): QWk q a c
