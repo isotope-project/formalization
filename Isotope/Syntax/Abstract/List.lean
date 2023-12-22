@@ -324,6 +324,7 @@ instance SplitOrWk.instSplitWk {A: Type u}
 def DropOrWk (A: Type u) := List A
 
 --TODO: define Drop Γ to be Wk Γ []?
+-- but this also requires another type bound on A
 inductive DropOrWk.Drop.{u, w, d} {A: Type u}
   [D: Drops.{u, d} A]
   : DropOrWk A -> Type (max u w d)
@@ -334,6 +335,8 @@ instance DropOrWk.instDrop {A: Type u} [Drops A]: Drops (DropOrWk A)
   where
   Drop := Drop
 
+--TODO: define as split to Δ []?
+-- issue is requires another type bound on A...
 inductive DropOrWk.Wk.{u, w, d} {A: Type u}
   [W: Wkns.{u, w} A] [D: Drops.{u, d} A]
   : DropOrWk A -> DropOrWk A -> Type (max u w d)
@@ -458,6 +461,38 @@ instance DropOrWk.instSplits {A: Type u}
 
 --TODO: instSplitDropWk
 
+--TODO: instSWk
+
+def DropOrWk.SWk {A} [Wkns A]
+  : DropOrWk A -> DropOrWk A -> Sort _
+  := Elementwise.Wk
+
+@[match_pattern]
+def DropOrWk.SWk.nil {A} [Wkns A]: @SWk A _ [] [] := Elementwise.Wk.nil
+
+@[match_pattern]
+def DropOrWk.SWk.cons {A} [W: Wkns A] {Γ Δ: DropOrWk A} {a b: A}
+  : W.Wk a b -> SWk Γ Δ -> SWk (a::Γ) (b::Δ)
+  := Elementwise.Wk.cons
+
+def DropOrWk.SWk.toWk {A} [Wkns A] [Drops A] {Γ Δ: DropOrWk A}
+  : SWk Γ Δ -> Wk Γ Δ
+  | nil => Wk.nil
+  | cons w W => Wk.cons w (toWk W)
+
+def DropOrWk.SWk.id {A} [Wkns A] (Γ: DropOrWk A)
+  : SWk Γ Γ := Elementwise.Wk.id Γ
+
+def DropOrWk.SWk.trans {A} [Wkns A]
+  {Γ Δ Ξ: DropOrWk A}: SWk Γ Δ -> SWk Δ Ξ -> SWk Γ Ξ
+  := Elementwise.Wk.trans
+
+instance DropOrWk.instSWk {A} [Wkns A] [WkDrop A]: SWkns (DropOrWk A) where
+  SWk := SWk
+  swkToWk := SWk.toWk
+  swkId := SWk.id
+  swkTrans := SWk.trans
+
 def DropOrWk.SSplit.{u, v} {A: Type u}
   [Splits.{u, v} A]
   : DropOrWk A -> DropOrWk A -> DropOrWk A -> Sort (max (u+1) v)
@@ -515,8 +550,6 @@ instance DropOrWk.instSSplits {A: Type u}
   ssplitToSplit := SSplit.toSplit
   ssplitSymm := SSplit.symm
   ssplitAssoc := SSplit.assoc
-
---TODO: instSWk
 
 --TODO: instDistWkSSplit
 
