@@ -256,16 +256,32 @@ def Ctx.SSplit.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
     (Γ23: Ctx N T) ×' (_: SSplit Γ123 Γ1 Γ23) ×' SSplit Γ23 Γ2 Γ3
   := Elementwise.Split.assoc
 
--- def Ctx.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
---   : Ctx N T → Ctx N T → Ctx N T → Type _
---   := @DropOrWk.Split (Var N T) _
+--TODO: instSSSplit
 
--- def Ctx.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
---   {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Split Γ Ξ Δ
---   := Elementwise.Split.symm
+def Ctx.SWk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T → Ctx N T → Type _
+  := @Elementwise.Wk (Var N T) _
 
--- def Ctx.Split.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
---   {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
---   : Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
---     (Γ23: Ctx N T) ×' (_: Split Γ123 Γ1 Γ23) ×' Split Γ23 Γ2 Γ3
---   := Elementwise.Split.assoc
+def Ctx.Split {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T → Ctx N T → Ctx N T → Sort _
+  := @DropOrWk.Split (Var N T) _ _ _
+
+def Ctx.Wk {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  : Ctx N T -> Ctx N T -> Sort _
+  := @DropOrWk.Wk (Var N T) _ _
+
+def Ctx.Split.symm {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: Ctx N T}: Split Γ Δ Ξ -> Split Γ Ξ Δ
+  := DropOrWk.Split.symm
+
+def Ctx.Split.assoc {N: Type u} {T: Type v} [ResourceAlgebraFamily T]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: Ctx N T}
+  : Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
+    (Γ23: Ctx N T) ×' (_: Split Γ123 Γ1 Γ23) ×' Split Γ23 Γ2 Γ3
+  := DropOrWk.Split.assoc
+
+--TODO: instSplit
+
+--TODO: instDistSSplit or smt...
+
+--TODO: instSplitWk
