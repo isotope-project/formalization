@@ -7,6 +7,7 @@ open Abstract
 
 namespace ResourceNamed
 
+--TODO: remove Ty T, put in ResourceAlgebra file? Too general for now...
 structure Res (T: Type v) [ResourceAlgebraFamily T] where
   ty: Ty T
   res: ty.res
@@ -142,7 +143,20 @@ def Res.Split.wkRight {T} [ResourceAlgebraFamily T]
   {v l r r': Res T}: Split v l r -> Wkns.Wk r r' -> Split v l r'
   | s => SplitWk.splitWkRight s
 
---TODO: Res.instSplitDropWk
+instance Res.instSplitDropWk {T} [ResourceAlgebraFamily T]
+  : SplitDropWk (Res T) where
+  wkDrop
+    | ⟨_, w, wq⟩, Or.inl ⟨a, dq⟩
+      => Or.inl ⟨Transparency.le.aff wq a, le_trans dq w.toLE⟩
+    | ⟨_, Or.inl ⟨a, wr⟩, _⟩, Or.inr d
+      => Or.inl ⟨a, d ▸ wr⟩
+    | ⟨_, Or.inr d, _⟩, Or.inr d'
+      => Or.inr (Eq.trans d' d)
+  splitDropLeft
+    | ⟨_, s, ql, qr⟩, Or.inl ⟨a, dq⟩
+      => ⟨_, (s.wkLeft (Or.inl ⟨Transparency.le.aff ql a, dq⟩)).dropLeft, qr⟩
+    | ⟨_, s, _, qr⟩, Or.inr d
+      => by simp only [] at d; exact ⟨_, (d.symm ▸ s).dropLeft, qr⟩
 
 structure Var (N: Type u) (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where

@@ -502,6 +502,17 @@ theorem ResourceAlgebra.QWk.upcast {T: Type u} [ResourceAlgebra T]
   : QWk q v v' -> QWk q' v v'
   := (transparentLeSubalgebra _ H).le_sub _ _
 
+theorem ResourceAlgebra.QWk.trans {T: Type u} [ResourceAlgebra T]
+  {q: Transparency} {a b c: T}
+  (Hab: QWk q a b) (Hbc: QWk q b c): QWk q a c
+  := (ResourceAlgebra.transparentAlgebra T q).le_trans _ _ _ Hbc Hab
+
+theorem ResourceAlgebra.QWk.toLE {T: Type u} [ResourceAlgebra T]
+  {q: Transparency} {a b: T}
+  : QWk q a b -> a ≥ b
+  | Or.inl ⟨_, H⟩ => H
+  | Or.inr rfl => le_refl _
+
 theorem ResourceAlgebra.QSplit.symm {T: Type u} [ResourceAlgebra T]
   {q} {x l r: T}: QSplit q x l r -> QSplit q x r l
   := @Split.symm T (ResourceAlgebra.transparentAlgebra T q) x l r
@@ -539,3 +550,11 @@ theorem ResourceAlgebra.qsplit_split {T: Type u} [ResourceAlgebra T]
   | ⟨Hxlr, Vlr⟩ => ⟨
     (transparentSubalgebra _ q).le_sub (l + r) x Hxlr,
     (transparentSubalgebra _ q).valid_sub _ _ Vlr⟩
+
+theorem ResourceAlgebra.QSplit.dropLeft {T: Type u} [ResourceAlgebra T]
+  {q} {x r: T}: QSplit q x 0 r -> QWk q x r
+  | ⟨Hxlr, _⟩ => by rw [zero_add] at Hxlr; exact Hxlr
+
+theorem ResourceAlgebra.QSplit.dropRight {T: Type u} [ResourceAlgebra T]
+  {q} {x l: T}: QSplit q x l 0 -> QWk q x l
+  | ⟨Hxlr, _⟩ => by rw [add_zero] at Hxlr; exact Hxlr
