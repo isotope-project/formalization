@@ -40,17 +40,11 @@ def InstructionSet.toQuiver {T} [ResourceAlgebraFamily T] (IS: InstructionSet T)
   : Quiver (Comp T) where
   Hom := Hom IS
 
---TODO: joining into pairs for Res T...
--- intersection of quantities? how to express this best?
-
---TODO: joining into pairs for Comp T...
--- can say only centrals join
-
--- def InstructionSet.toLang {N T} [ResourceAlgebraFamily T] (IS: InstructionSet T)
---   : Abstract.Lang (Ctx N T) where
---   Ty := Comp T
---   pair := sorry
---   inst := IS.toQuiver
---   cnst := Ctx.Cnst
---   var := Ctx.Var
---   bind := Ctx.Bind
+def InstructionSet.toLang {N T} [ResourceAlgebraFamily T] (IS: InstructionSet T)
+  : Abstract.Lang (Ctx N T) where
+  Ty := Comp T
+  pair := Comp.instJoinStruct
+  inst := IS.toQuiver
+  cnst := Ctx.Cnst
+  var := Ctx.Var
+  bind := Ctx.Bind

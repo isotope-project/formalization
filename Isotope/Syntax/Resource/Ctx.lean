@@ -175,6 +175,24 @@ instance Res.instDropToSplit {T} [ResourceAlgebraFamily T]
     ResourceAlgebra.QWk.id _,
     ResourceAlgebra.QWk.id _⟩
 
+inductive Res.Join {T} [ResourceAlgebraFamily T]
+  : Res T → Res T → Res T → Prop where
+  | mk (A B: Ty T) {l: A.res} {r: B.res} {v: A.res × B.res} {q}
+    (Hrl: ResourceAlgebra.QWk ql l v.1) (Hrr: ResourceAlgebra.QWk qr r v.2)
+    (Hql: ql ≥ q) (Hqr: qr ≥ q)
+    : Join ⟨A, l, ql⟩ ⟨B, r, qr⟩ ⟨A.tensor B, v, q⟩
+
+--TODO: more general join which is actually symmetric and associative, via hax?
+-- How would this be used, though?
+
+instance Res.instJoinStruct {T} [ResourceAlgebraFamily T]
+  : JoinStruct (Res T) where
+  Join := Join
+
+def Res.Join.ty_tensor {T} [ResourceAlgebraFamily T]
+  {l r v: Res T}: Join l r v -> v.ty = l.ty.tensor r.ty
+  | mk _ _ _ _ _ _ => rfl
+
 structure Var (N: Type u) (T: Type v) [ResourceAlgebraFamily T]
   extends Res T where
   name: N
@@ -263,6 +281,16 @@ instance Comp.instPartialOrder {T: Type v} [ResourceAlgebraFamily T]
     have Hc := le_antisymm H.1 H'.1;
     have Ht := le_antisymm H.2 H'.2;
     by cases x; cases x'; simp only [] at *; rw [Ht, Hc]
+
+structure Comp.Join {T: Type v} [ResourceAlgebraFamily T]
+  (l r v: Comp T): Prop where
+  res: JoinStruct.Join l.toRes r.toRes v.toRes
+  left_central: l.central
+  right_central: r.central
+
+instance Comp.instJoinStruct {T} [ResourceAlgebraFamily T]
+  : JoinStruct (Comp T) where
+  Join := Join
 
 def Ctx (N: Type u) (T: Type v) [ResourceAlgebraFamily T] := List (Var N T)
 

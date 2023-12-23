@@ -63,6 +63,7 @@ instance CategoryStruct.instQCategory {A: Type u} [C: Category A]
 
 namespace Abstract
 
+--TODO: Separate out SplitStruct?
 class Splits.{u, v} (A: Type u): Type (max u v) where
   Split: A -> A -> A -> Sort v
   splitSymm {a b c: A}: Split a b c -> Split a c b
@@ -95,8 +96,10 @@ instance instSplitsUnit: Splits Unit where
   splitSymm _ := ()
   splitAssoc _ _ := ⟨(), (), ()⟩
 
-class Joins.{u, v} (A: Type u): Type (max u v) where
+class JoinStruct.{u, v} (A: Type u): Type (max u v) where
   Join: A -> A -> A -> Sort v
+
+class Joins.{u, v} (A: Type u) extends JoinStruct.{u, v} A: Type (max u v) where
   joinSymm {a b c: A}: Join a b c -> Join b a c
   joinAssoc {a123 a12 a1 a2 a3: A}:
     Join a12 a3 a123 -> Join a1 a2 a12 ->
@@ -104,16 +107,16 @@ class Joins.{u, v} (A: Type u): Type (max u v) where
   joinAssoc_inv {a123 a23 a1 a2 a3}:
     Join a1 a23 a123 -> Join a2 a3 a23 ->
       (a12: A) ×' (_: Join a12 a3 a123) ×' (Join a1 a2 a12)
-      := λJ1 J2 =>
-        let ⟨a21, J1, J2⟩ := joinAssoc (joinSymm J1) (joinSymm J2)
-        ⟨a21, joinSymm J1, joinSymm J2⟩
+    := λJ1 J2 =>
+      let ⟨a21, J1, J2⟩ := joinAssoc (joinSymm J1) (joinSymm J2)
+      ⟨a21, joinSymm J1, joinSymm J2⟩
 
 open Joins
 
 instance instJoinsUnit: Joins Unit where
   Join _ _ _ := Unit
-  joinSymm _ := ()
   joinAssoc _ _ := ⟨(), (), ()⟩
+  joinSymm _ := ()
 
 class Wkns.{u, v} (A: Type u): Type (max u v) where
   Wk: A -> A -> Sort v

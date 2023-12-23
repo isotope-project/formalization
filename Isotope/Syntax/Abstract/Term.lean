@@ -10,7 +10,7 @@ class Lang.{u, v, s, ss, sj, sv, sb, si, sc} (C: Type u)
   extends SSplits.{u, s, ss} C
   where
   Ty: Type v
-  pair: Joins.{v, sj} Ty
+  pair: JoinStruct.{v, sj} Ty
   inst: Quiver.{si} Ty
   cnst: C -> Ty -> Sort sc
   var: C -> Ty -> Sort sv
