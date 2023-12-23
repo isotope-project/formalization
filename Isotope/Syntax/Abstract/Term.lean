@@ -5,6 +5,7 @@ open CategoryTheory
 
 namespace Abstract
 
+--TODO: bind language to output type? Deals nicely with effects...
 class Lang.{u, v, s, ss, sj, sv, sb, si, sc} (C: Type u)
   extends SSplits.{u, s, ss} C
   where
@@ -16,20 +17,20 @@ class Lang.{u, v, s, ss, sj, sv, sb, si, sc} (C: Type u)
   bind: Ty -> C -> C -> Sort sb
 
 inductive Term.{u, v, s, ss, sj, sv, sb, si, sc} {C: Type u}
-  [L: Lang.{u, v, s, ss, sj, sv, sb, si, sc} C]
+  (L: Lang.{u, v, s, ss, sj, sv, sb, si, sc} C)
   : C -> L.Ty -> Type (max u v s ss sj sv sb si sc)
   where
-  | var {Γ X}: L.var Γ X -> Term Γ X
-  | op {Γ A B}: L.inst.Hom A B -> Term Γ A -> Term Γ B
-  | cnst {Γ A}: L.cnst Γ A -> Term Γ A
+  | var {Γ X}: L.var Γ X -> Term L Γ X
+  | op {Γ A B}: L.inst.Hom A B -> Term L Γ A -> Term L Γ B
+  | cnst {Γ A}: L.cnst Γ A -> Term L Γ A
   | pair {Γ Δ Ξ A B C}: L.SSplit Γ Δ Ξ ->
-    Term Δ A -> Term Ξ B -> L.pair.Join A B C ->
-    Term Γ C
+    Term L Δ A -> Term L Ξ B -> L.pair.Join A B C ->
+    Term L Γ C
   | bind {Γ Δ Ξ A AΔ B}: L.SSplit Γ Δ Ξ ->
     L.bind A Δ AΔ ->
-    Term Ξ A ->
-    Term AΔ B ->
-    Term Γ B
+    Term L Ξ A ->
+    Term L AΔ B ->
+    Term L Γ B
 
 class Upcastable (C: Type v) [L: Lang C]
   where
@@ -45,7 +46,7 @@ def Term.upcast.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
   [L: Lang.{u, v, ss, sj, sv, sb, si, sc} C]
   [Upcastable C]
   {Γ: C} {A B: L.Ty} (p: Upcastable.Upcast A B):
-  Term Γ A -> Term Γ B
+  Term L Γ A -> Term L Γ B
   | var X => Term.var (Upcastable.upcastVar p X)
   | op f a => Term.op (Upcastable.upcastInst p f) a
   | cnst c => Term.cnst (Upcastable.upcastCnst p c)
@@ -54,11 +55,12 @@ def Term.upcast.{u, v, ss, sj, sv, sb, si, sc} {C: Type u}
 
 --TODO: quiver is a substitution...
 --TODO: quiver is a renaming...
+--TODO: separate substitution from quiver and language...
 class Subst.{u, v, ss, sj, sv, sb, si, sc}
   (C: Type u)
   extends Lang.{u, v, ss, sj, sv, sb, si, sc} C, Quiver C
   where
-  subst_var {Θ Γ X}: Hom Θ Γ -> var Γ X -> Term Θ X
+  subst_var {Θ Γ X}: Hom Θ Γ -> var Γ X -> Term toLang Θ X
   subst_cnst {Θ Γ}: Hom Θ Γ -> cnst Γ A -> cnst Θ A
   subst_bind {Θ Γ A AΓ}: Hom Θ Γ -> bind A Γ AΓ
     -> (AΘ: C) ×' (_: Hom AΘ AΓ) ×' bind A Θ AΘ
@@ -66,7 +68,7 @@ class Subst.{u, v, ss, sj, sv, sb, si, sc}
     -> (ΘΔ ΘΞ: C) ×' (_: SSplit Θ ΘΔ ΘΞ) ×' (_: Hom ΘΔ Δ) ×' Hom ΘΞ Ξ
 
 def Term.subst {C} [L: Subst C]
-  {Θ Γ: C} {A: L.Ty} (σ: L.Hom Θ Γ): Term Γ A -> Term Θ A
+  {Θ Γ: C} {A: L.Ty} (σ: L.Hom Θ Γ): Term L.toLang Γ A -> Term L.toLang Θ A
   | var x => L.subst_var σ x
   | op f x => Term.op f (subst σ x)
   | cnst c => Term.cnst (L.subst_cnst σ c)
@@ -110,7 +112,7 @@ class SubstCat.{u, v, ss, sj, sv, sb, si, sc}
     )
 
 def Term.subst_id {C} [L: SubstCat C]
-  {Γ: C} {A: L.Ty}: (a: Term Γ A) -> a.subst (𝟙 Γ) = a
+  {Γ: C} {A: L.Ty}: (a: Term L.toLang Γ A) -> a.subst (𝟙 Γ) = a
   | var X => L.subst_id_var X
   | op f x => congrArg _ (subst_id x)
   | cnst c => congrArg _ (L.subst_id_cnst c)
@@ -125,7 +127,7 @@ def Term.subst_id {C} [L: SubstCat C]
 
 def Term.subst_comp {C} [L: SubstCat C]
   {Θ Γ Δ: C} {A: L.Ty} (σ: L.Hom Θ Γ) (τ: L.Hom Γ Δ):
-  (a: Term Δ A) -> a.subst (σ ≫ τ) = (a.subst τ).subst σ
+  (a: Term L.toLang Δ A) -> a.subst (σ ≫ τ) = (a.subst τ).subst σ
   | var X => L.subst_comp_var σ τ X
   | op f x => congrArg _ (subst_comp σ τ x)
   | cnst c => congrArg _ (L.subst_comp_cnst σ τ c)
