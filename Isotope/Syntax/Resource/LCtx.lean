@@ -118,3 +118,47 @@ def LCtx (N: Type u) (T: Type v) [ResourceAlgebraFamily T] := List (Label N T)
 def LCtx.Join {N T} [ResourceAlgebraFamily T]
   : LCtx N T → LCtx N T → LCtx N T -> Sort _
   := OptElementwise.Join
+
+@[match_pattern]
+def LCtx.Join.nil {N T} [ResourceAlgebraFamily T]
+  : @LCtx.Join N T _ [] [] [] := OptElementwise.Join.nil
+
+@[match_pattern]
+def LCtx.Join.left {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: LCtx N T} (ℓ: Label N T)
+  (J: LCtx.Join Γ Δ Ξ)
+  : LCtx.Join (ℓ::Γ) Δ (ℓ::Ξ)
+  := OptElementwise.Join.left ℓ J
+
+@[match_pattern]
+def LCtx.Join.right {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: LCtx N T} (ℓ: Label N T)
+  (J: LCtx.Join Γ Δ Ξ)
+  : LCtx.Join Γ (ℓ::Δ) (ℓ::Ξ)
+  := OptElementwise.Join.right ℓ J
+
+@[match_pattern]
+def LCtx.Join.both {N T} [ResourceAlgebraFamily T]
+  {ℓ κ τ: Label N T} {Γ Δ Ξ: LCtx N T}
+  (J: Label.Join ℓ κ τ)
+  (J': LCtx.Join Γ Δ Ξ)
+  : LCtx.Join (ℓ::Γ) (κ::Δ) (τ::Ξ)
+  := OptElementwise.Join.both J J'
+
+def LCtx.Join.symm {N T} [ResourceAlgebraFamily T]
+  {Γ Δ Ξ: LCtx N T} (J: LCtx.Join Γ Δ Ξ)
+  : LCtx.Join Δ Γ Ξ
+  := OptElementwise.Join.symm J
+
+def LCtx.Join.assoc {N T} [ResourceAlgebraFamily T]
+  {Γ123 Γ12 Γ1 Γ2 Γ3: LCtx N T}
+  (J12_3: LCtx.Join Γ12 Γ3 Γ123)
+  (J1_2: LCtx.Join Γ1 Γ2 Γ12)
+  : (Γ23: LCtx N T) ×' (_: LCtx.Join Γ1 Γ23 Γ123) ×' LCtx.Join Γ2 Γ3 Γ23
+  := OptElementwise.Join.assoc J12_3 J1_2
+
+instance LCtx.instJoins {N T} [ResourceAlgebraFamily T]: Joins (LCtx N T)
+  where
+  Join := LCtx.Join
+  joinSymm := Join.symm
+  joinAssoc := Join.assoc
