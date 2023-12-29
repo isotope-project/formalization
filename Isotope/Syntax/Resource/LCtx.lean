@@ -40,3 +40,9 @@ structure Label.Wk {N T} [ResourceAlgebraFamily T] (ℓ κ: Label N T) where
 
 def Label.Split {N T} [ResourceAlgebraFamily T] (ℓ κ τ: Label N T)
   := ℓ.Wk κ × ℓ.Wk τ
+
+def LCtx (N: Type u) (T: Type v) [ResourceAlgebraFamily T] := List (Label N T)
+
+-- def LCtx.Join {N T} [ResourceAlgebraFamily T]
+--   : LCtx N T → LCtx N T → LCtx N T -> Sort _
+--   := sorry

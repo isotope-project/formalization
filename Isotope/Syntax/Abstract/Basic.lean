@@ -118,6 +118,16 @@ instance instJoinsUnit: Joins Unit where
   joinAssoc _ _ := ⟨(), (), ()⟩
   joinSymm _ := ()
 
+def Splits.toJoins {A: Type u} (S: Splits.{u, v} A): Joins.{u, v} A where
+  Join a b c := S.Split c a b
+  joinSymm := S.splitSymm
+  joinAssoc := S.splitAssoc
+
+def Joins.toSplits {A: Type u} (J: Joins.{u, v} A): Splits.{u, v} A where
+  Split c a b := J.Join a b c
+  splitSymm := J.joinSymm
+  splitAssoc := J.joinAssoc
+
 class Wkns.{u, v} (A: Type u): Type (max u v) where
   Wk: A -> A -> Sort v
   wkId: (a: A) -> Wk a a

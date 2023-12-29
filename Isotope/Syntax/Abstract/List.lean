@@ -2,14 +2,68 @@ import Isotope.Syntax.Abstract.Basic
 
 namespace Abstract
 
-open Splits
 open Wkns
+open Splits
+open Joins
 open Drops
 open WkDrop
 open SplitWk
 open BiasedDistWkSplit
 open DropToSplit
 open SplitDropWk
+
+inductive List.SubList {A: Type u}
+  : List A -> List A -> Type u
+  | nil: SubList [] []
+  | cons {Γ Δ} (l): SubList Γ Δ -> SubList (l::Γ) (l::Δ)
+  | discard {Γ Δ} (l): SubList Γ Δ -> SubList (l::Γ) Δ
+
+def List.SubList.id {A}
+  : (Γ: List A) -> SubList Γ Γ
+  | [] => nil
+  | l::Γ => cons l (id Γ)
+
+def List.SubList.trans {A} {Γ Δ Ξ: List A}
+  : SubList Γ Δ -> SubList Δ Ξ -> SubList Γ Ξ
+  | H, nil => H
+  | cons l H, cons _ H'  => cons l (trans H H')
+  | cons l H, discard _ H' | discard l H, H' => discard l (trans H H')
+
+instance List.instWkns {A}: Wkns (List A) where
+  Wk := SubList
+  wkId := SubList.id
+  wkTrans := SubList.trans
+
+structure List.SubLists {A: Type u} (Γ Δ Ξ: List A) where
+  left: List.SubList Γ Δ
+  right: List.SubList Γ Ξ
+
+def List.SubLists.symm {A: Type u} {Γ Δ Ξ: List A}
+  (H: SubLists Γ Δ Ξ): SubLists Γ Ξ Δ where
+  left := H.right
+  right := H.left
+
+def List.SubLists.assoc {A: Type u} {Γ123 Γ12 Γ1 Γ2 Γ3: List A}
+  (H12_3: SubLists Γ123 Γ12 Γ3) (H12: SubLists Γ12 Γ1 Γ2)
+  : (Γ23: List A)
+    ×' (_: SubLists Γ123 Γ1 Γ23)
+    ×' (SubLists Γ23 Γ2 Γ3)
+  := ⟨
+    Γ123,
+    {
+      left := H12_3.left.trans H12.left,
+      right := List.SubList.id Γ123
+    },
+    {
+      left := H12_3.left.trans H12.right,
+      right := H12_3.right
+    }
+  ⟩
+
+instance List.instSplittable {A}: Splits (List A) where
+  Split := List.SubLists
+  splitSymm := List.SubLists.symm
+  splitAssoc := List.SubLists.assoc
 
 inductive List.Partitions {A: Type u}
   : List A -> List A -> List A -> Type u
@@ -39,43 +93,34 @@ def List.Partitions.assoc {A}: {Γ123 Γ12 Γ1 Γ2 Γ3: List A} ->
     let ⟨Γ23, p, p'⟩ := assoc p p'
     ⟨v::Γ23, right v p, right v p'⟩
 
-instance List.instSlittable {A}: Splits (List A) where
-  Split := List.Partitions
-  splitSymm := List.Partitions.symm
-  splitAssoc := List.Partitions.assoc
+def List.Partitions.leftSubList {A} {Γ Δ Ξ: List A}
+  : List.Partitions Γ Δ Ξ -> SubList Γ Δ
+  | nil => SubList.nil
+  | left l p => SubList.cons l (leftSubList p)
+  | right r p => SubList.discard r (leftSubList p)
 
-def List.instJoinable {A}: Joins (List A) where
+def List.Partitions.rightSubList {A} {Γ Δ Ξ: List A}
+  : List.Partitions Γ Δ Ξ -> SubList Γ Ξ
+  | nil => SubList.nil
+  | left l p => SubList.discard l (rightSubList p)
+  | right r p => SubList.cons r (rightSubList p)
+
+def List.Partitions.toSubLists {A} {Γ Δ Ξ: List A}
+  (H: List.Partitions Γ Δ Ξ): List.SubLists Γ Δ Ξ where
+  left := H.leftSubList
+  right := H.rightSubList
+
+instance List.instSSplits {A}: SSplits (List A) where
+  SSplit := Partitions
+  ssplitToSplit := Partitions.toSubLists
+  ssplitSymm := Partitions.symm
+  ssplitAssoc := Partitions.assoc
+
+--TODO: fix this
+instance List.instJoinable {A}: Joins (List A) where
   Join Δ Ξ Γ := List.Partitions Γ Δ Ξ
   joinSymm := List.Partitions.symm
   joinAssoc := List.Partitions.assoc
-
-inductive List.Sublist {A: Type u}
-  : List A -> List A -> Type u
-  | nil: Sublist [] []
-  | cons {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) (l::Δ)
-  | discard {Γ Δ} (l): Sublist Γ Δ -> Sublist (l::Γ) Δ
-
-def List.Sublist.id {A}
-  : (Γ: List A) -> List.Sublist Γ Γ
-  | [] => nil
-  | l::Γ => cons l (id Γ)
-
-def List.Sublist.trans {A} {Γ Δ Ξ: List A}
-  : List.Sublist Γ Δ -> List.Sublist Δ Ξ -> List.Sublist Γ Ξ
-  | H, nil => H
-  | cons l H, cons _ H'  => cons l (trans H H')
-  | cons l H, discard _ H' | discard l H, H' => discard l (trans H H')
-
-instance List.instWkns {A}: Wkns (List A) where
-  Wk := List.Sublist
-  wkId := List.Sublist.id
-  wkTrans := List.Sublist.trans
-
---TODO: elementwise resource theorems, e.g. split wk
-
---TODO: splat for lists allowing drops?
-
---TODO: S for _strict_ or _strong_?
 
 def Elementwise (A: Type u) := List A
 
@@ -133,6 +178,35 @@ instance Elementwise.instWkns {A: Type u} [Wkns A]
   Wk := Elementwise.Wk
   wkId := Elementwise.Wk.id
   wkTrans :=  Elementwise.Wk.trans
+
+inductive Elementwise.Join.{u, v} {A: Type u} [J: JoinStruct.{u, v} A]
+  : Elementwise A -> Elementwise A -> Elementwise A -> Sort (max (u+1) v)
+  | nil: Join [] [] []
+  | cons {a b c: A} {Γ Δ Ξ: List A}: J.Join a b c -> Join Γ Δ Ξ ->
+    Join (a :: Γ) (b :: Δ) (c :: Ξ)
+
+def Elementwise.Join.symm {A} [Joins A] {Γ Δ Ξ: Elementwise A}:
+  Join Γ Δ Ξ -> Join Δ Γ Ξ
+  | nil => nil
+  | cons s sl => cons (joinSymm s) (symm sl)
+
+def Elementwise.Join.assoc
+  {A} [Joins A] {Γ123 Γ12 Γ1 Γ2 Γ3: Elementwise A}:
+  Join Γ12 Γ3 Γ123 -> Join Γ1 Γ2 Γ12 ->
+      (Γ23: List A)
+      ×' (_: Join Γ1 Γ23 Γ123)
+      ×' (Join Γ2 Γ3 Γ23)
+  | nil, nil => ⟨[], nil, nil⟩
+  | cons s sl, cons s' sl' =>
+    let ⟨a23, s, s'⟩ := joinAssoc s s'
+    let ⟨Γ23, sl, sl'⟩ := assoc sl sl'
+    ⟨a23::Γ23, cons s sl, cons s' sl'⟩
+
+instance Elementwise.instJoins {A: Type u} [Joins.{u, v} A]
+  : Joins.{u, max (u+1) v} (Elementwise A) where
+  Join := Join.{u, v}
+  joinSymm := Join.symm
+  joinAssoc := Join.assoc
 
 def SplitBoth (A: Type u) := List A
 
