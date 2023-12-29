@@ -208,24 +208,24 @@ instance Elementwise.instJoins {A: Type u} [Joins.{u, v} A]
   joinSymm := Join.symm
   joinAssoc := Join.assoc
 
-def SplitBoth (A: Type u) := List A
+def OptElementwise (A: Type u) := List A
 
-inductive SplitBoth.Split.{u, v} {A: Type u} [S: Splits.{u, v} A]
-  : SplitBoth A -> SplitBoth A -> SplitBoth A -> Sort (max (u+1) v)
+inductive OptElementwise.Split.{u, v} {A: Type u} [S: Splits.{u, v} A]
+  : OptElementwise A -> OptElementwise A -> OptElementwise A -> Sort (max (u+1) v)
   | nil: Split [] [] []
   | left (a): Split Γ Δ Ξ -> Split (a::Γ) (a::Δ) Ξ
   | right (a): Split Γ Δ Ξ -> Split (a::Γ) Δ (a::Ξ)
   | both {a b c: A} {Γ Δ Ξ: List A}: S.Split a b c -> Split Γ Δ Ξ ->
     Split (a :: Γ) (b :: Δ) (c :: Ξ)
 
-def SplitBoth.Split.symm {A} [Splits A] {Γ Δ Ξ: SplitBoth A}:
+def OptElementwise.Split.symm {A} [Splits A] {Γ Δ Ξ: OptElementwise A}:
   Split Γ Δ Ξ -> Split Γ Ξ Δ
   | nil => nil
   | left a s => right a (symm s)
   | right a s => left a (symm s)
   | both s ss => both (splitSymm s) (symm ss)
 
-def SplitBoth.Split.assoc {A} [Splits A] {Γ123 Γ12 Γ1 Γ2 Γ3: SplitBoth A}:
+def OptElementwise.Split.assoc {A} [Splits A] {Γ123 Γ12 Γ1 Γ2 Γ3: OptElementwise A}:
   Split Γ123 Γ12 Γ3 -> Split Γ12 Γ1 Γ2 ->
       (Γ23: List A)
       ×' (_: Split Γ123 Γ1 Γ23)
@@ -254,22 +254,76 @@ def SplitBoth.Split.assoc {A} [Splits A] {Γ123 Γ12 Γ1 Γ2 Γ3: SplitBoth A}:
     let ⟨_, sa, sa'⟩ := splitAssoc sa sa';
     ⟨_::Γ23, both sa s, both sa' s'⟩
 
-instance SplitBoth.instSplits {A: Type u} [Splits.{u, v} A]
-  : Splits.{u, max (u+1) v} (SplitBoth A) where
+instance OptElementwise.instSplits {A: Type u} [Splits.{u, v} A]
+  : Splits.{u, max (u+1) v} (OptElementwise A) where
   Split := Split.{u, v}
   splitSymm := Split.symm
   splitAssoc := Split.assoc
 
-def Elementwise.Split.toSplitBoth {A: Type u} [Splits.{u, v} A]
-  {Γ Δ Ξ: Elementwise A}: Split Γ Δ Ξ -> SplitBoth.Split Γ Δ Ξ
-  | nil => SplitBoth.Split.nil
-  | cons sa s => SplitBoth.Split.both sa (toSplitBoth s)
+--TODO: separate out SplitStruct?
+def Elementwise.Split.toOptElementwise {A: Type u} [Splits.{u, v} A]
+  {Γ Δ Ξ: Elementwise A}: Split Γ Δ Ξ -> OptElementwise.Split Γ Δ Ξ
+  | nil => OptElementwise.Split.nil
+  | cons sa s => OptElementwise.Split.both sa (toOptElementwise s)
 
-def List.Partitions.Split.toSplitBoth {A: Type u} [Splits.{u, v} A]
-  {Γ Δ Ξ: List A}: List.Partitions Γ Δ Ξ -> SplitBoth.Split Γ Δ Ξ
-  | nil => SplitBoth.Split.nil
-  | left l p => SplitBoth.Split.left l (toSplitBoth p)
-  | right r p => SplitBoth.Split.right r (toSplitBoth p)
+def List.Partitions.Split.toOptElementwise {A: Type u} [Splits.{u, v} A]
+  {Γ Δ Ξ: List A}: List.Partitions Γ Δ Ξ -> OptElementwise.Split Γ Δ Ξ
+  | nil => OptElementwise.Split.nil
+  | left l p => OptElementwise.Split.left l (toOptElementwise p)
+  | right r p => OptElementwise.Split.right r (toOptElementwise p)
+
+inductive OptElementwise.Join.{u, v} {A: Type u} [S: JoinStruct.{u, v} A]
+  : OptElementwise A -> OptElementwise A -> OptElementwise A -> Sort (max (u+1) v)
+  | nil: Join [] [] []
+  | left (a): Join Γ Δ Ξ -> Join (a::Γ) Δ (a::Ξ)
+  | right (a): Join Γ Δ Ξ -> Join Γ (a::Δ) (a::Ξ)
+  | both {a b c: A} {Γ Δ Ξ: List A}: S.Join a b c -> Join Γ Δ Ξ ->
+    Join (a :: Γ) (b :: Δ) (c :: Ξ)
+
+def OptElementwise.Join.symm {A} [Joins A] {Γ Δ Ξ: OptElementwise A}:
+  Join Γ Δ Ξ -> Join Δ Γ Ξ
+  | nil => nil
+  | left a s => right a (symm s)
+  | right a s => left a (symm s)
+  | both s ss => both (joinSymm s) (symm ss)
+
+def OptElementwise.Join.assoc {A} [Joins A] {Γ123 Γ12 Γ1 Γ2 Γ3: OptElementwise A}:
+  Join Γ12 Γ3 Γ123 -> Join Γ1 Γ2 Γ12 ->
+      (Γ23: List A)
+      ×' (_: Join Γ1 Γ23 Γ123)
+      ×' (Join Γ2 Γ3 Γ23)
+  | nil, nil => ⟨[], nil, nil⟩
+  | left a s, left _ s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨Γ23, left a s, s'⟩
+  | left a s, right _ s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨a::Γ23, right a s, left a s'⟩
+  | left _ s, both sa s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, both sa s, left _ s'⟩
+  | right a s, s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨a::Γ23, right a s, right a s'⟩
+  | both sa s, left _ s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, both sa s, right _ s'⟩
+  | both sa s, right _ s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    ⟨_::Γ23, right _ s, both sa s'⟩
+  | both sa s, both sa' s' =>
+    let ⟨Γ23, s, s'⟩ := assoc s s'
+    let ⟨_, sa, sa'⟩ := joinAssoc sa sa';
+    ⟨_::Γ23, both sa s, both sa' s'⟩
+
+instance OptElementwise.instJoinStruct {A: Type u} [JoinStruct.{u, v} A]
+  : JoinStruct.{u, max (u+1) v} (OptElementwise A) where
+  Join := Join.{u, v}
+
+instance OptElementwise.instJoins {A: Type u} [Joins.{u, v} A]
+  : Joins.{u, max (u+1) v} (OptElementwise A) where
+  joinSymm := Join.symm
+  joinAssoc := Join.assoc
 
 --TODO: instCSplitWk
 
